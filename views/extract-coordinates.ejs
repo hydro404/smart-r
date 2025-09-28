@@ -88,24 +88,27 @@
         let outputArray = [];
         lines.forEach(line => {
           const [Label, Latitude, Longitude] = line.split(",");
-          outputArray.push(
-            `{ name: "${Label.trim()}", lat: ${parseFloat(Latitude)}, lng: ${parseFloat(Longitude)} }`
-          );
+          outputArray.push({
+            name: Label.trim(),
+            lat: parseFloat(Latitude),
+            lng: parseFloat(Longitude)
+          });
         });
 
-        // Join with commas + line breaks
-        const formattedOutput = outputArray.join(",\n");
+        // Proper JSON output
+        const formattedOutput = JSON.stringify(outputArray, null, 2);
 
         // Trigger download
-        const blob = new Blob([formattedOutput], { type: "text/plain" });
+        const blob = new Blob([formattedOutput], { type: "application/json" });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
-        link.download = "coordinates.txt";
+        link.download = "coordinates.json";
         link.click();
       };
 
       reader.readAsText(fileInput.files[0]);
     });
   </script>
+
 </body>
 </html>
