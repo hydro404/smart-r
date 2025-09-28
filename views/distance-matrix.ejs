@@ -37,7 +37,7 @@
     </div>
   </div>
 
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBsSua3i0Kkv8dhdEapPsZEAxNeH7JfgKM&libraries=places"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=<%= process.env.GOOGLE_MAPS_API_KEY %>&libraries=places"></script>
   <script>
     let mapGoogle, locations = [], markers = [], matrixDetails = [];
 
