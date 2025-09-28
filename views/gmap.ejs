@@ -62,16 +62,22 @@
     <div id="container" class="container-fluid p-2">
         <div class="panel">
             <h3 class="text-center">Google Optimized Route</h3>
-            <div class="controls d-flex flex-wrap justify-content-center mb-2">
-            <select id="locationSelect" onchange="loadLocations(this.value)" class="form-select mb-2 mb-sm-0 me-sm-2 w-100 w-sm-auto">
-                <option value="">-- Choose Location Set --</option>
-                <option value="json-coordinates/east.json">East</option>
-                <option value="json-coordinates/north.json">North</option>
-                <option value="json-coordinates/west.json">West</option>
-                <option value="json-coordinates/poblacion.json">Poblacion</option>
-            </select>
-            <button onclick="runGoogleOptimized()" class="btn btn-primary mb-2 mb-sm-0 me-sm-2 w-100 w-sm-auto">Run Google Optimized</button>
-            <button onclick="exportRoute()" class="btn btn-success mb-2 mb-sm-0 w-100 w-sm-auto">Export CSV</button>
+            <div class="controls d-flex flex-wrap justify-content-center mb-2 gap-3">
+                <div class="col-md-3 col-12">
+                    <select id="locationSelect" onchange="loadLocations(this.value)" class="form-select mb-2 mb-sm-0 me-sm-2 w-100 w-sm-auto">
+                        <option value="">-- Choose Location Set --</option>
+                        <option value="json-coordinates/east.json">East</option>
+                        <option value="json-coordinates/north.json">North</option>
+                        <option value="json-coordinates/west.json">West</option>
+                        <option value="json-coordinates/poblacion.json">Poblacion</option>
+                    </select>
+                </div>
+                <div class="col-md-3 col-12">
+                    <button onclick="runGoogleOptimized()" class="btn btn-primary mb-2 mb-sm-0 me-sm-2 w-100 w-sm-auto">Run Google Optimized</button>
+                </div>
+                <div class="col-md-3 col-12">
+                    <button onclick="exportRoute()" class="btn btn-success mb-2 mb-sm-0 w-100 w-sm-auto">Export CSV</button>
+                </div>
             </div>
             <div id="progressGoogle" class="progresss text-center py-2">Idle</div>
             <div id="mapGoogle" class="map mt-2 pt-2"></div>
