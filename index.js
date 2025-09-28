@@ -30,6 +30,10 @@ app.get('/distance-matrix', (req, res) => {
   res.render('distance-matrix');
 });
 
+app.get('/result', (req, res) => {
+  res.render('tsp-map');
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Route for button click
