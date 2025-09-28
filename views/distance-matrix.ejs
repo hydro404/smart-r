@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Google Pathway Distance Matrix (Chunked)</title>
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; }
+    #container { display: grid; height: 100vh; }
+    .panel { display: flex; flex-direction: column; }
+    .map { flex: 1; }
+    .progresss { padding: 8px; background: #f7f7f7; border-bottom: 1px solid #ddd; font-size: 14px; }
+    .routeList { height: 200px; overflow-y: auto; padding: 10px; border-top: 1px solid #ccc; font-size: 13px; white-space: pre-line; }
+    h3 { margin: 5px 0; text-align: center; }
+    .controls { text-align: center; padding: 6px; border-bottom: 1px solid #ccc; }
+    button, select { margin: 3px; padding: 6px 12px; cursor: pointer; }
+  </style>
+  <%- include('partials/header') %>
+</head>
+<body class="container">
+    <%- include('partials/navbar') %>
+  <div id="container">
+    <div class="panel">
+      <h3>Google Pathway Distance Matrix (Chunked)</h3>
+      <div class="controls">
+        <select id="locationSelect" onchange="loadLocations(this.value)" class="form-select d-inline-block w-auto">
+          <option value="">-- Choose Location Set --</option>
+          <option value="json-coordinates/east.json">East</option>
+          <option value="json-coordinates/north.json">North</option>
+          <option value="json-coordinates/west.json">West</option>
+          <option value="json-coordinates/poblacion.json">Poblacion</option>
+        </select>
+        <button onclick="runDistanceMatrix()" class="btn btn-primary">Get Distances</button>
+        <button onclick="exportMatrix()" class="btn btn-success">Export CSV</button>
+      </div>
+      <div id="progressGoogle" class="progresss">Idle</div>
+      <div id="mapGoogle" class="map"></div>
+      <div id="matrixList" class="routeList"></div>
+    </div>
+  </div>
+
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBsSua3i0Kkv8dhdEapPsZEAxNeH7JfgKM&libraries=places"></script>
+  <script>
+    let mapGoogle, locations = [], markers = [], matrixDetails = [];
+
+    function initMap() {
+      mapGoogle = new google.maps.Map(document.getElementById("mapGoogle"), {
+        zoom: 14, center: { lat: 13.18157367, lng: 123.6560316 }
+      });
+    }
+
+    async function loadLocations(url) {
+      if (!url) {
+        locations = [];
+        clearMarkers();
+        return;
+      }
+
+      const res = await fetch(url);
+      locations = await res.json();
+
+      clearMarkers();
+      locations.forEach(loc => {
+        const marker = new google.maps.Marker({
+          position: { lat: loc.lat, lng: loc.lng },
+          map: mapGoogle,
+          label: loc.name
+        });
+        markers.push(marker);
+      });
+
+      if (locations.length) {
+        mapGoogle.setCenter({ lat: locations[0].lat, lng: locations[0].lng });
+      }
+
+      document.getElementById("progressGoogle").textContent =
+        `Loaded ${locations.length} locations.`;
+    }
+
+    function clearMarkers() {
+      markers.forEach(m => m.setMap(null));
+      markers = [];
+    }
+
+    async function runDistanceMatrix() {
+      if (!locations.length) {
+        alert("Please select a location set first.");
+        return;
+      }
+
+      document.getElementById("progressGoogle").textContent = "Calculating distances...";
+
+      matrixDetails = [];
+      const chunkSize = 10; // 10x10 = 100 elements max
+
+      for (let i = 0; i < locations.length; i += chunkSize) {
+        for (let j = 0; j < locations.length; j += chunkSize) {
+          const origins = locations.slice(i, i + chunkSize).map(l => ({ lat: l.lat, lng: l.lng }));
+          const destinations = locations.slice(j, j + chunkSize).map(l => ({ lat: l.lat, lng: l.lng }));
+
+          await new Promise((resolve, reject) => {
+            const service = new google.maps.DistanceMatrixService();
+            service.getDistanceMatrix(
+              { origins, destinations, travelMode: "DRIVING" },
+              (res, status) => {
+                if (status !== "OK") {
+                  console.error("Matrix failed:", status);
+                  reject(status);
+                  return;
+                }
+
+                res.rows.forEach((row, oi) => {
+                  row.elements.forEach((el, di) => {
+                    const fromIndex = i + oi;
+                    const toIndex = j + di;
+                    if (fromIndex !== toIndex) {
+                      const detail = {
+                        from: locations[fromIndex].name,
+                        to: locations[toIndex].name,
+                        distance: el.distance.text,
+                        duration: el.duration.text
+                      };
+                      matrixDetails.push(detail);
+                    }
+                  });
+                });
+
+                resolve();
+              }
+            );
+          });
+        }
+      }
+
+      const output = matrixDetails.map(d =>
+        `${d.from} → ${d.to} | ${d.distance} | ${d.duration}`
+      );
+
+      document.getElementById("matrixList").innerText = output.join("\n");
+      document.getElementById("progressGoogle").textContent = "Matrix Ready";
+    }
+
+    function exportMatrix() {
+      if (!matrixDetails.length) {
+        alert("No matrix data to export.");
+        return;
+      }
+      let csv = "From,To,Distance,Duration\n";
+      matrixDetails.forEach(step => {
+        csv += `"${step.from}","${step.to}","${step.distance}","${step.duration}"\n`;
+      });
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "distance-matrix.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    window.onload = initMap;
+  </script>
+</body>
+</html>

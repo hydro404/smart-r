@@ -26,6 +26,10 @@ app.get('/gmap', (req, res) => {
   res.render('gmap');
 });
 
+app.get('/distance-matrix', (req, res) => {
+  res.render('distance-matrix');
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Route for button click
