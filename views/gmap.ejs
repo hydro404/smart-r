@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Google Optimized Routing</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+      }
+      #container {
+        display: grid;
+        height: 100vh;
+      }
+      .panel {
+        display: flex;
+        flex-direction: column;
+      }
+      .map {
+        flex: 1;
+      }
+      .progresss {
+        padding: 8px;
+        background: #f7f7f7;
+        border-bottom: 1px solid #ddd;
+        font-size: 14px;
+      }
+      .routeList {
+        height: 200px;
+        overflow-y: auto;
+        padding: 10px;
+        border-top: 1px solid #ccc;
+        font-size: 13px;
+        white-space: pre-line;
+      }
+      .totals {
+        margin-top: 10px;
+        font-weight: bold;
+      }
+      h3 {
+        margin: 5px 0;
+        text-align: center;
+      }
+      .controls {
+        text-align: center;
+        padding: 6px;
+        border-bottom: 1px solid #ccc;
+      }
+      button,
+      select {
+        margin: 3px;
+        padding: 6px 12px;
+        cursor: pointer;
+      }
+    </style>
+    <%- include('partials/header') %>
+  </head>
+  <body>
+    
+    <%- include('partials/navbar') %>
+
+
+    <div id="container" class="container-fluid p-2">
+        <div class="panel">
+            <h3 class="text-center">Google Optimized Route</h3>
+            <div class="controls d-flex flex-wrap justify-content-center mb-2">
+            <select id="locationSelect" onchange="loadLocations(this.value)" class="form-select mb-2 mb-sm-0 me-sm-2 w-100 w-sm-auto">
+                <option value="">-- Choose Location Set --</option>
+                <option value="json-coordinates/east.json">East</option>
+                <option value="json-coordinates/north.json">North</option>
+                <option value="json-coordinates/west.json">West</option>
+                <option value="json-coordinates/poblacion.json">Poblacion</option>
+            </select>
+            <button onclick="runGoogleOptimized()" class="btn btn-primary mb-2 mb-sm-0 me-sm-2 w-100 w-sm-auto">Run Google Optimized</button>
+            <button onclick="exportRoute()" class="btn btn-success mb-2 mb-sm-0 w-100 w-sm-auto">Export CSV</button>
+            </div>
+            <div id="progressGoogle" class="progresss text-center py-2">Idle</div>
+            <div id="mapGoogle" class="map mt-2 pt-2"></div>
+            <div id="routeListGoogle" class="routeList"></div>
+        </div>
+    </div>
+
+
+    <script src="https://maps.googleapis.com/maps/api/js?key=<%= process.env.GOOGLE_MAPS_API_KEY %>&libraries=places"></script>
+    <script>
+      const policeStation = {
+        name: "Police Station",
+        lat: 13.18157367,
+        lng: 123.6560316,
+      };
+
+      let mapGoogle,
+        directionsRenderersGoogle = [],
+        routeDetails = [],
+        locations = [],
+        markers = [];
+
+      function initMap() {
+        mapGoogle = new google.maps.Map(document.getElementById("mapGoogle"), {
+          zoom: 15,
+          center: policeStation,
+        });
+        new google.maps.Marker({
+          position: policeStation,
+          map: mapGoogle,
+          label: "P",
+        });
+      }
+
+      async function loadLocations(url) {
+        if (!url) {
+          locations = [];
+          clearMarkers();
+          return;
+        }
+
+        const res = await fetch(url);
+        locations = await res.json();
+
+        clearMarkers();
+        locations.forEach((loc) => {
+          const marker = new google.maps.Marker({
+            position: { lat: loc.lat, lng: loc.lng },
+            map: mapGoogle,
+            label: loc.name,
+          });
+          markers.push(marker);
+        });
+
+        if (locations.length) {
+          mapGoogle.setCenter({ lat: locations[0].lat, lng: locations[0].lng });
+        }
+      }
+
+      function clearMarkers() {
+        markers.forEach((m) => m.setMap(null));
+        markers = [];
+      }
+
+      async function runGoogleOptimized() {
+        if (!locations.length) {
+          alert("Please select a location set first.");
+          return;
+        }
+
+        directionsRenderersGoogle.forEach((r) => r.setMap(null));
+        directionsRenderersGoogle = [];
+        routeDetails = [];
+
+        const directionsService = new google.maps.DirectionsService();
+        let totalDistance = 0,
+          totalDuration = 0;
+
+        const chunkSize = 25;
+        const chunks = [];
+        for (let i = 0; i < locations.length; i += chunkSize) {
+          chunks.push(locations.slice(i, i + chunkSize));
+        }
+
+        let currentOrigin = policeStation;
+        let stopsProcessed = 0;
+
+        for (let batchIndex = 0; batchIndex < chunks.length; batchIndex++) {
+          const chunk = chunks[batchIndex];
+          const origin = currentOrigin;
+          const destination = chunk[chunk.length - 1];
+          const waypoints = chunk.slice(0, -1).map((l) => ({
+            location: { lat: l.lat, lng: l.lng },
+            stopover: true,
+          }));
+
+          const result = await new Promise((resolve, reject) => {
+            directionsService.route(
+              {
+                origin,
+                destination,
+                waypoints,
+                optimizeWaypoints: true,
+                travelMode: "DRIVING",
+              },
+              (res, status) => (status === "OK" ? resolve(res) : reject(status))
+            );
+          });
+
+          const route = result.routes[0];
+          const order = route.waypoint_order;
+          const sequence = [origin, ...order.map((i) => chunk[i]), destination];
+
+          route.legs.forEach((leg, idx) => {
+            routeDetails.push({
+              from: sequence[idx].name,
+              to: sequence[idx + 1].name,
+              distance: leg.distance.text,
+              duration: leg.duration.text,
+            });
+            totalDistance += leg.distance.value;
+            totalDuration += leg.duration.value;
+          });
+
+          currentOrigin = destination;
+          stopsProcessed += chunk.length;
+
+          const renderer = new google.maps.DirectionsRenderer({
+            map: mapGoogle,
+            suppressMarkers: true,
+            preserveViewport: true,
+          });
+          renderer.setDirections(result);
+          directionsRenderersGoogle.push(renderer);
+
+          document.getElementById("progressGoogle").textContent = `Batch ${
+            batchIndex + 1
+          }/${chunks.length} | Stops: ${stopsProcessed}/${locations.length}`;
+        }
+
+        listRoute(
+          "routeListGoogle",
+          routeDetails,
+          totalDistance,
+          totalDuration
+        );
+        document.getElementById("progressGoogle").textContent = "Done";
+      }
+
+      function listRoute(containerId, details, totalDistance, totalDuration) {
+        const c = document.getElementById(containerId);
+        c.innerHTML = "";
+        details.forEach((step, i) => {
+          c.innerHTML += `${i + 1}. ${step.from} → ${step.to} | ${
+            step.distance
+          } | ${step.duration}\n`;
+        });
+        c.innerHTML += `\nTOTAL | ${(totalDistance / 1000).toFixed(
+          2
+        )} km | ${formatDuration(totalDuration)}\n`;
+      }
+
+      function formatDuration(seconds) {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        return `${h > 0 ? h + "h " : ""}${m}m`;
+      }
+
+      function exportRoute() {
+        if (!routeDetails.length) {
+          alert("No route data to export.");
+          return;
+        }
+        let csv = "From,To,Distance,Duration\n";
+        routeDetails.forEach((step) => {
+          csv += `"${step.from}","${step.to}","${step.distance}","${step.duration}"\n`;
+        });
+        const blob = new Blob([csv], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "route.csv";
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+
+      window.onload = initMap;
+    </script>
+  </body>
+</html>

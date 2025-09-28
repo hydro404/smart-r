@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Greedy Nearest-Neighbor TSP (Driving)</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+      }
+      #container {
+        display: grid;
+        height: 100vh;
+      }
+      .panel {
+        display: flex;
+        flex-direction: column;
+      }
+      .map {
+        flex: 1;
+      }
+      .progresss {
+        padding: 8px;
+        background: #f7f7f7;
+        border-bottom: 1px solid #ddd;
+        font-size: 14px;
+      }
+      .routeList {
+        height: 200px;
+        overflow-y: auto;
+        padding: 10px;
+        border-top: 1px solid #ccc;
+        font-size: 13px;
+        white-space: pre-line;
+      }
+      .totals {
+        margin-top: 10px;
+        font-weight: bold;
+      }
+      h3 {
+        margin: 5px 0;
+        text-align: center;
+      }
+      .controls {
+        text-align: center;
+        padding: 6px;
+        border-bottom: 1px solid #ccc;
+      }
+      button,
+      select {
+        margin: 3px;
+        padding: 6px 12px;
+        cursor: pointer;
+      }
+    </style>
+    <%- include('partials/header') %>
+
+  </head>
+  <body>
+
+
+    <%- include('partials/navbar') %>
+    
+    <div id="container">
+      <div class="panel">
+        <h3>Greedy Nearest-Neighbor TSP</h3>
+        <div class="controls">
+          <select id="locationSelect" onchange="loadLocations(this.value)" class="form-select d-inline-block w-auto mb-3 mb-md-0">
+            <option value="">-- Choose Location Set --</option>
+            <option value="json-coordinates/east.json">East</option>
+            <option value="json-coordinates/north.json">North</option>
+            <option value="json-coordinates/west.json">West</option>
+            <option value="json-coordinates/poblacion.json">Poblacion</option>
+          </select>
+          <button onclick="exportCSV()" class="btn btn-success">Export Route to CSV</button>
+        </div>
+        <div id="progress" class="progresss">Idle</div>
+        <div id="map" class="map"></div>
+        <div id="routeList" class="routeList"></div>
+      </div>
+    </div>
+
+    <script src="https://maps.googleapis.com/maps/api/js?key=<%= process.env.GOOGLE_MAPS_API_KEY %>&libraries=places"></script>
+    <script>
+      const policeStation = {
+        name: "Police Station",
+        lat: 13.18157367,
+        lng: 123.6560316,
+      };
+      let locations = [];
+
+      let map, distanceService;
+      let directionsRenderers = [];
+      let routeDetailsGlobal = [];
+      let totalDistanceGlobal = 0;
+      let totalDurationGlobal = 0;
+
+      function initMap() {
+        map = new google.maps.Map(document.getElementById("map"), {
+          zoom: 15,
+          center: policeStation,
+        });
+
+        distanceService = new google.maps.DistanceMatrixService();
+
+        new google.maps.Marker({
+          position: { lat: policeStation.lat, lng: policeStation.lng },
+          map,
+          label: "P",
+          title: "Police Station",
+        });
+      }
+
+        let locationMarkers = []; // store markers globally
+
+        async function loadLocations(file) {
+        if (!file) {
+            locations = [];
+            return;
+        }
+        try {
+            const res = await fetch(file);
+            locations = await res.json();
+
+            // Clear previous markers & routes
+            directionsRenderers.forEach((r) => r.setMap(null));
+            directionsRenderers = [];
+
+            locationMarkers.forEach((m) => m.setMap(null)); // clear old markers
+            locationMarkers = [];
+
+            // Reset route list
+            document.getElementById("routeList").innerHTML = "";
+
+            // Add markers for new locations
+            locations.forEach((loc) => {
+            const marker = new google.maps.Marker({
+                position: { lat: loc.lat, lng: loc.lng },
+                map,
+                label: loc.name,
+            });
+            locationMarkers.push(marker);
+            });
+
+            runGreedyTSP();
+        } catch (err) {
+            console.error("Error loading JSON:", err);
+        }
+        }
+      
+
+      async function runGreedyTSP() {
+        if (!locations.length) return;
+
+        let unvisited = [...locations];
+        let current = policeStation;
+        let route = [current];
+        let routeDetails = [];
+
+        let totalDistance = 0;
+        let totalDuration = 0;
+
+        const total = unvisited.length;
+        for (let step = 0; step < total; step++) {
+          updateProgress(step + 1, total);
+          const nearest = await findNearest(current, unvisited);
+          route.push(nearest.location);
+
+          totalDistance += nearest.distance.value;
+          totalDuration += nearest.duration.value;
+
+          routeDetails.push({
+            from: current.name,
+            to: nearest.location.name,
+            distance: nearest.distance.text,
+            duration: nearest.duration.text,
+          });
+
+          unvisited = unvisited.filter((l) => l !== nearest.location);
+          current = nearest.location;
+        }
+
+        updateProgress(total, total);
+        drawChunkedRoute(route);
+        listRoute(routeDetails, totalDistance, totalDuration);
+
+        // Save for CSV export
+        routeDetailsGlobal = routeDetails;
+        totalDistanceGlobal = totalDistance;
+        totalDurationGlobal = totalDuration;
+      }
+
+      async function findNearest(origin, candidates) {
+        const batchSize = 25;
+        let min = { index: -1, distance: { value: Infinity }, duration: null };
+
+        for (let i = 0; i < candidates.length; i += batchSize) {
+          const batch = candidates.slice(i, i + batchSize);
+          const result = await getDistances(origin, batch);
+
+          result.forEach((res, j) => {
+            if (
+              res.status === "OK" &&
+              res.distance.value < min.distance.value
+            ) {
+              min = {
+                index: i + j,
+                distance: res.distance,
+                duration: res.duration,
+              };
+            }
+          });
+        }
+
+        return {
+          location: candidates[min.index],
+          distance: min.distance,
+          duration: min.duration,
+        };
+      }
+
+      function getDistances(origin, destinations) {
+        return new Promise((resolve, reject) => {
+          distanceService.getDistanceMatrix(
+            {
+              origins: [{ lat: origin.lat, lng: origin.lng }],
+              destinations: destinations.map((c) => ({
+                lat: c.lat,
+                lng: c.lng,
+              })),
+              travelMode: "DRIVING",
+            },
+            (response, status) => {
+              if (status !== "OK") return reject(status);
+              resolve(response.rows[0].elements);
+            }
+          );
+        });
+      }
+
+      function drawChunkedRoute(route) {
+        directionsRenderers.forEach((r) => r.setMap(null));
+        directionsRenderers = [];
+
+        const chunkSize = 25;
+        for (let i = 0; i < route.length - 1; i += chunkSize - 1) {
+          const subRoute = route.slice(i, i + chunkSize);
+
+          const directionsService = new google.maps.DirectionsService();
+          const directionsRenderer = new google.maps.DirectionsRenderer({
+            map: map,
+            suppressMarkers: true,
+            preserveViewport: true,
+          });
+          directionsRenderers.push(directionsRenderer);
+
+          directionsService.route(
+            {
+              origin: subRoute[0],
+              destination: subRoute[subRoute.length - 1],
+              waypoints: subRoute.slice(1, -1).map((r) => ({
+                location: { lat: r.lat, lng: r.lng },
+                stopover: true,
+              })),
+              travelMode: "DRIVING",
+            },
+            (result, status) => {
+              if (status === "OK") {
+                directionsRenderer.setDirections(result);
+              } else {
+                console.error("Directions request failed:", status);
+              }
+            }
+          );
+        }
+      }
+
+      function listRoute(routeDetails, totalDistance, totalDuration) {
+        const c = document.getElementById("routeList");
+        c.innerHTML = "";
+        routeDetails.forEach((step, i) => {
+          c.innerHTML += `${i + 1}. ${step.from} → ${step.to} | ${
+            step.distance
+          } | ${step.duration}\n`;
+        });
+        c.innerHTML += `\nTOTAL | ${(totalDistance / 1000).toFixed(
+          2
+        )} km | ${formatDuration(totalDuration)}\n`;
+      }
+
+      function formatDuration(seconds) {
+        const hrs = Math.floor(seconds / 3600);
+        const mins = Math.floor((seconds % 3600) / 60);
+        return `${hrs > 0 ? hrs + "h " : ""}${mins}m`;
+      }
+
+      function updateProgress(current, total) {
+        document.getElementById(
+          "progress"
+        ).textContent = `Progress: ${current}/${total}`;
+      }
+
+      // --- CSV Export ---
+      function exportCSV() {
+        if (!routeDetailsGlobal.length) {
+          alert("No route calculated yet.");
+          return;
+        }
+
+        let csv = "From,To,Distance,Duration\n";
+        routeDetailsGlobal.forEach((step) => {
+          csv += `"${step.from}","${step.to}","${step.distance}","${step.duration}"\n`;
+        });
+
+        csv += `\nTotals,,${(totalDistanceGlobal / 1000).toFixed(
+          2
+        )} km,${formatDuration(totalDurationGlobal)}`;
+
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "route_export.csv";
+        link.click();
+      }
+
+      window.onload = initMap;
+    </script>
+  </body>
+</html>

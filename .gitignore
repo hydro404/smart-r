@@ -1,0 +1,14 @@
+# gitignore for nodejs
+node_modules
+npm-debug.log
+yarn-error.log
+.env
+dist
+.DS_Store
+.vscode
+.idea
+coverage
+*.local
+*.log
+*.tsbuildinfo
+.cache

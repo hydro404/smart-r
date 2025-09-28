@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <%- include('partials/header') %>
+</head>
+<body class="container">
+
+  <%- include('partials/navbar') %>
+  
+  <div class="container my-5">
+    <h3 class="text-center">KML Coordinate Extractor</h3>
+    <div class="mb-3">
+      <label for="kmlFile" class="form-label">Import KML File</label>
+      <input class="form-control" type="file" id="kmlFile" accept=".kml" >
+    </div>
+    <button id="processBtn" class="btn btn-success">Extract & Download CSV</button>
+    </div>
+  </div>
+
+  <div class="container my-5">
+    <h3 class="text-center">CSV → JSON</h3>
+    <div class="mb-3">
+      <label for="csvFile" class="form-label">Import CSV File</label>
+      <input class="form-control" type="file" id="csvFile" accept=".csv" >
+    </div>
+    <button id="convertBtn" class="btn btn-success">Convert & Download JSON</button>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById("processBtn").addEventListener("click", () => {
+      const fileInput = document.getElementById("kmlFile");
+      if (!fileInput.files.length) {
+        alert("Please select a KML file first!");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function (event) {
+        const kmlString = event.target.result;
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(kmlString, "text/xml");
+
+        // Find ONLY <Point><coordinates>
+        const coords = xmlDoc.getElementsByTagName("coordinates");
+        let rows = [["Label", "Latitude", "Longitude"]]; // CSV header
+
+        for (let i = 0; i < coords.length; i++) {
+          let coordText = coords[i].textContent.trim();
+          if (coordText) {
+            // Coordinates = "lon,lat,alt"
+            let [lon, lat] = coordText.split(",");
+            rows.push([i + 1, lat, lon]); // Label incrementally
+          }
+        }
+
+        // Convert to CSV string
+        const csvContent = rows.map(e => e.join(",")).join("\n");
+
+        // Trigger download
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "coordinates.csv";
+        link.click();
+      };
+
+      reader.readAsText(fileInput.files[0]);
+    });
+  </script>
+
+  <script>
+    document.getElementById("convertBtn").addEventListener("click", () => {
+      const fileInput = document.getElementById("csvFile");
+      if (!fileInput.files.length) {
+        alert("Please select a CSV file first!");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function (event) {
+        const csvText = event.target.result.trim();
+        const lines = csvText.split("\n");
+
+        // Remove header row
+        lines.shift();
+
+        let outputArray = [];
+        lines.forEach(line => {
+          const [Label, Latitude, Longitude] = line.split(",");
+          outputArray.push(
+            `{ name: "${Label.trim()}", lat: ${parseFloat(Latitude)}, lng: ${parseFloat(Longitude)} }`
+          );
+        });
+
+        // Join with commas + line breaks
+        const formattedOutput = outputArray.join(",\n");
+
+        // Trigger download
+        const blob = new Blob([formattedOutput], { type: "text/plain" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "coordinates.txt";
+        link.click();
+      };
+
+      reader.readAsText(fileInput.files[0]);
+    });
+  </script>
+</body>
+</html>
