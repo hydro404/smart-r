@@ -23,14 +23,22 @@
   <%- include('partials/header') %>
 </head>
 <body>
-  <%- include('partials/navbar') %>
-  <div class="dropdown-container">
-    <select id="mapSelect" class="form-select w-auto d-inline-block">
-      <option value="maps/tsp_map_north.html">North</option>
-      <option value="maps/tsp_map_east.html">East</option>
-      <option value="maps/tsp_map_west.html">West</option>
-      <option value="maps/tsp_map_poblacion.html">Poblacion</option>
-    </select>
+  <div class="d-flex justify-content-center">
+    <div class="text-center pt-2">
+      <h3>SMART-R TSP Result Maps</h3>
+    </div>
+  </div>
+
+  <div class="d-flex justify-content-center align-items-center">
+    <h5>Select a cluster:</h5>
+    <div class="dropdown-container">
+      <select id="mapSelect" class="form-select w-auto d-inline-block">
+        <option value="maps/tsp_map_north.html">North</option>
+        <option value="maps/tsp_map_east.html">East</option>
+        <option value="maps/tsp_map_west.html">West</option>
+        <option value="maps/tsp_map_poblacion.html">Poblacion</option>
+      </select>
+    </div>
   </div>
 
   <iframe id="mapFrame" src="maps/tsp_map_north.html"></iframe>

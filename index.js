@@ -11,7 +11,7 @@ app.set('view engine', 'ejs');
 
 // Route for home
 app.get('/', (req, res) => {
-  res.render('index', { name: NAME });
+  res.render('tsp-map', { name: NAME });
 });
 
 app.get('/extract-coordinates', (req, res) => {
