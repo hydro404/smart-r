@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Camalig Route Simulator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"/>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
+<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+<style>
+html, body { height:100%; margin:0; padding:0; font-family:sans-serif; }
+body { display:flex; flex-direction:row; min-height:100vh; }
+
+#panel {
+    width: 300px;
+    overflow-y:auto;
+    padding: 10px;
+    background:#f0f0f0;
+    box-sizing:border-box;
+    transition: all 0.2s;
+}
+#map { flex:1; height:100vh; }
+
+.route-item { border:1px solid #ccc; padding:5px; margin-bottom:5px; cursor:pointer; }
+.route-item.selected { background:#d0ebff; border-color:#3399ff; }
+.input-box { margin-bottom:10px; }
+label { font-weight:bold; }
+
+/* Mobile adjustments */
+@media (max-width:768px){
+    body { flex-direction:column; }
+    #panel {
+        width:100%;
+        max-height:300px;
+        overflow-y:auto;
+        order:1;
+        z-index:1000;
+    }
+    #map {
+        height: calc(100vh - 300px);
+        width:100%;
+        order:0;
+    }
+}
+@media (max-width:480px){
+    #panel { max-height:280px; padding:6px; }
+    #map { height: calc(100vh - 280px); }
+    .route-item { font-size:0.95em; }
+    label { font-size:0.98em; }
+}
+.leaflet-div-icon {
+    background: none;
+    border: none;
+}
+.node-label {
+    width: 30px !important;
+    height: 30px !important;
+    line-height: 30px;
+    border-radius: 50%;
+    background: green;
+    color: white;
+    text-align: center;
+    font-weight: bold;
+    border: none;
+}
+</style>
+</head>
+<body>
+
+<div id="panel" class="bg-light p-3">
+    <div class="input-box mb-3">
+        <label class="form-label">From:</label>
+        <select id="fromSelect" class="form-select mb-2">
+            <option value="">-- Select Start --</option>
+            <option value="13.186272,123.65848">BFP (Origin)</option>
+            <option value="13.190000,123.660000">Point B</option>
+            <option value="13.200000,123.670000">Point C</option>
+        </select>
+
+        <label class="form-label">To:</label>
+        <select id="toSelect" class="form-select mb-2">
+            <option value="">-- Select Destination --</option>
+            <option value="13.16888573371113,123.62755552821616">Point X</option>
+            <option value="13.160000,123.650000">Point Y</option>
+            <option value="13.170000,123.660000">Point Z</option>
+        </select>
+
+        <button id="simulateBtn" class="btn btn-primary w-100">Simulate Route</button>
+    </div>
+    <div id="routeList"></div>
+</div>
+
+<div id="map"></div>
+
+<script>
+// ================= Load nodes =================
+let nodes = [];
+fetch("camalig_nodes.json").then(res=>res.json()).then(data=>nodes=data);
+
+// ================= Helper =================
+function distance(lat1, lon1, lat2, lon2){
+    const R = 6371000;
+    const dLat = ((lat2-lat1)*Math.PI)/180;
+    const dLon = ((lon2-lon1)*Math.PI)/180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+function nearestLabeledNode(lat, lon){
+    let minDist = Infinity, nearest = null;
+    for(let n of nodes){
+        const d = distance(lat, lon, n.lat, n.lon);
+        if(d<minDist){ minDist=d; nearest=n; }
+    }
+    return nearest;
+}
+
+// ================= Leaflet Map =================
+const map = L.map('map').setView([13.18,123.66],13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
+let routeLayers=[], nodeMarkers=[], startMarker=null, endMarker=null;
+
+// ================= Simulate =================
+document.getElementById("simulateBtn").addEventListener("click", ()=>{
+    const fromVal = document.getElementById("fromSelect").value;
+    const toVal = document.getElementById("toSelect").value;
+    if(!fromVal || !toVal){ alert("Select both From and To"); return; }
+
+    const [fromLat, fromLng] = fromVal.split(',').map(s=>Number(s.trim()));
+    const [toLat, toLng] = toVal.split(',').map(s=>Number(s.trim()));
+    const startNode = nearestLabeledNode(fromLat, fromLng);
+    const endNode = nearestLabeledNode(toLat, toLng);
+
+    const url = `https://router.project-osrm.org/route/v1/driving/${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson&steps=true&alternatives=true`;
+    fetch(url).then(res=>res.json()).then(data=>{
+        if(!data.routes || data.routes.length===0){ alert("No routes found"); return; }
+        const routes = data.routes;
+        const routeListDiv = document.getElementById('routeList');
+        routeListDiv.innerHTML='';
+        routeLayers.forEach(l=>map.removeLayer(l));
+        routeLayers=[];
+        nodeMarkers.forEach(m=>map.removeLayer(m));
+        nodeMarkers=[];
+        if(startMarker) map.removeLayer(startMarker);
+        if(endMarker) map.removeLayer(endMarker);
+
+        // Add start/end markers
+        startMarker = L.marker([fromLat, fromLng], {icon:L.icon({iconUrl:'https://cdn-icons-png.flaticon.com/512/25/25694.png', iconSize:[25,25]})}).addTo(map).bindPopup("Start");
+        endMarker = L.marker([toLat, toLng], {icon:L.icon({iconUrl:'https://cdn-icons-png.flaticon.com/512/685/685352.png', iconSize:[25,25]})}).addTo(map).bindPopup("End");
+
+        routes.forEach((route,i)=>{
+            const coords = route.geometry.coordinates.map(c=>[c[1],c[0]]);
+            const layer = L.polyline(coords,{color:'blue',weight:4,opacity:0.5}).addTo(map);
+            routeLayers.push(layer);
+
+            // Map route intersections to nearest labeled nodes
+            let passedLabels=[], reachedEnd=false;
+            route.legs[0].steps.forEach(step=>{
+                if(reachedEnd) return;
+                step.intersections.forEach(inter=>{
+                    if(reachedEnd) return;
+                    const nearest = nearestLabeledNode(inter.location[1], inter.location[0]);
+                    if(nearest && !passedLabels.includes(nearest.label)){
+                        passedLabels.push(nearest.label);
+                        if(nearest.label===endNode.label) reachedEnd=true;
+                    }
+                });
+            });
+            passedLabels.unshift("POINT A");
+            passedLabels.push("POINT B");
+
+            // Add numbered markers for nodes using DivIcon
+            passedLabels.forEach((label, index)=>{
+                const node = nodes.find(n=>n.label===label);
+                if(node){
+                    const icon = L.divIcon({
+                        className:'node-label',
+                        html:`${index+1}`
+                    });
+                    const marker = L.marker([node.lat,node.lon],{icon:icon}).addTo(map);
+                    nodeMarkers.push(marker);
+                }
+            });
+
+            const item=document.createElement('div');
+            item.className='route-item';
+            item.innerHTML=`<b>${i+1}. ${(route.distance/1000).toFixed(2)} km via driving</b><br>${Math.round(route.duration/60)} min<br>Nodes: ${passedLabels.join(' → ')}`;
+            let startMarker = null;
+            let endMarker = null;
+
+            item.addEventListener('click', () => {
+                // reset polyline styles
+                routeLayers.forEach(l => l.setStyle({opacity:0.3,color:'blue'}));
+                layer.setStyle({opacity:1,color:'red'});
+
+                // reset selection style
+                item.parentNode.querySelectorAll('.route-item').forEach(el => el.classList.remove('selected'));
+                item.classList.add('selected');
+
+                map.fitBounds(layer.getBounds());
+
+                // remove previous node markers
+                nodeMarkers.forEach(m => map.removeLayer(m));
+                nodeMarkers = [];
+                if (startMarker) { map.removeLayer(startMarker); startMarker = null; }
+                if (endMarker) { map.removeLayer(endMarker); endMarker = null; }
+
+                // add start marker
+                // startMarker = L.marker([fromLat, fromLng], {icon: L.icon({iconUrl: 'start-flag.png', iconSize:[30,30]})}).addTo(map);
+                // add end marker
+                // endMarker = L.marker([toLat, toLng], {icon: L.icon({iconUrl: 'end-flag.png', iconSize:[30,30]})}).addTo(map);
+
+                // add numbered node markers
+                passedLabels.forEach((label, idx) => {
+                    // skip POINT A/B for numbering, or handle as needed
+                    if (label !== "POINT A" && label !== "POINT B") {
+                        const node = nodes.find(n => n.label === label);
+                        if(node){
+                            const marker = L.marker([node.lat,node.lon], {
+                                icon: L.divIcon({
+                                    className: 'node-label',
+                                    html: (idx), // order number
+                                    iconSize: [30,30],
+                                    iconAnchor: [15,15]
+                                })
+                            }).addTo(map);
+                            nodeMarkers.push(marker);
+                        }
+                    }
+                });
+            });
+
+            routeListDiv.appendChild(item);
+        });
+
+        map.fitBounds(routeLayers[0].getBounds());
+        routeLayers[0].setStyle({color:'red',opacity:1});
+        routeListDiv.firstChild.classList.add('selected');
+
+    }).catch(err=>{ console.error(err); alert("Error fetching OSRM routes"); });
+});
+</script>
+
+</body>
+</html>
