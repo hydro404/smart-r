@@ -120,6 +120,17 @@ body {
   color: var(--text-light);
 }
 
+.btn-warning {
+  background-color: #ff9800;
+  color: white;
+}
+
+.btn-warning:hover {
+  background-color: #f57c00;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(255, 152, 0, 0.3);
+}
+
 .route-item {
   border: 1px solid var(--border-light);
   border-radius: 6px;
@@ -184,6 +195,40 @@ body {
   font-weight: bold; 
   border: 2px solid white;
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.flood-legend {
+  background: white;
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 0 0 15px rgba(0,0,0,0.2);
+  line-height: 18px;
+  color: #555;
+  /* display: none; */
+}
+
+.flood-legend h4 {
+  margin: 0 0 10px;
+  text-align: center;
+}
+
+.flood-legend i {
+  width: 18px;
+  height: 18px;
+  float: left;
+  margin-right: 8px;
+  opacity: 0.7;
+  border-radius: 3px;
+}
+
+.flood-legend div {
+  margin-bottom: 5px;
+}
+
+.flood-simulation-controls {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid var(--border-light);
 }
 
 @media (max-width:768px){
@@ -292,6 +337,12 @@ body {
     </div>
     <button id="addWaypoint" class="btn btn-secondary w-100 mb-3">+ Add Waypoint</button>
     <button id="simulateBtn" class="btn btn-primary w-100">Simulate Route</button>
+    
+    <!-- Flood Simulation Controls -->
+    <div class="flood-simulation-controls">
+      <button id="simulateFloodBtn" class="btn btn-warning w-100 mb-2">Simulate Flood</button>
+      <button id="clearFloodBtn" class="btn btn-secondary w-100">Clear Flood Simulation</button>
+    </div>
   </div>
   
   <div id="routeList"></div>
@@ -300,6 +351,24 @@ body {
 <div id="map"></div>
 
 <script>
+// Flood data
+const FLOOD_COORDS = {
+    HIGH: [
+        [13.1663752,123.6390575], [13.1633786,123.6253100], [13.1778072,123.6548366],
+        [13.1833199,123.6609898], [13.1911754,123.6550448], [13.1800698,123.6711842],
+        [13.1958818,123.6404964], [13.1575537,123.6215714], [13.157542,123.621614]
+    ],
+    MEDIUM: [
+        [13.16943082,123.64861903], [13.1773306,123.6513749], [13.1879272,123.6630409],
+        [13.1946542,123.6452255], [13.1606990,123.6323987], [13.1768422,123.6508674]
+    ],
+    LOW: [
+        [13.1779755,123.6433904], [13.1796393,123.6540673], [13.1812760,123.6541214],
+        [13.1785292,123.6528645], [13.1831296,123.6590014], [13.1873790,123.6605608],
+        [13.187042,123.653694]
+    ]
+};
+
 // Detect OSRM server
 let OSRM_SERVER = "http://127.0.0.1:5000"; // default local
 async function detectOSRM() {
@@ -314,6 +383,7 @@ async function detectOSRM() {
 detectOSRM();
 
 let nodes = [], routeLayers = [], nodeMarkers = [];
+let floodLayers = [];
 
 // Load road network nodes
 fetch("road_network.json").then(res => res.json()).then(data => nodes = data);
@@ -444,6 +514,82 @@ function nearestNode(lat, lon){
 const map = L.map('map').setView([13.18,123.66],13);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19}).addTo(map);
 
+// Add flood legend
+function addFloodLegend() {
+  const legend = L.control({position: 'bottomright'});
+  legend.onAdd = function (map) {
+    const div = L.DomUtil.create('div', 'flood-legend');
+    div.innerHTML = `
+      <h4>Flood Risk Level</h4>
+      <div><i style="background: #ff0000"></i> High Risk</div>
+      <div><i style="background: #ffff00"></i> Medium Risk</div>
+      <div><i style="background: #0000ff"></i> Low Risk</div>
+    `;
+    return div;
+  };
+  return legend;
+}
+
+const floodLegend = addFloodLegend();
+
+// Function to simulate flood with spread out visualization
+function simulateFlood() {
+    // Clear previous flood layers
+    floodLayers.forEach(l => map.removeLayer(l));
+    floodLayers = [];
+
+    // Add High risk areas with larger circles
+    FLOOD_COORDS.HIGH.forEach(c=>{
+        const circle = L.circle(c, {
+            radius: 80, 
+            color: 'red', 
+            fillColor: 'red', 
+            fillOpacity: 0.2,
+            weight: 2
+        }).addTo(map);
+        floodLayers.push(circle);
+    });
+    
+    // Add Medium risk areas with medium circles
+    FLOOD_COORDS.MEDIUM.forEach(c=>{
+        const circle = L.circle(c, {
+            radius: 80, 
+            color: 'yellow', 
+            fillColor: 'yellow', 
+            fillOpacity: 0.2,
+            weight: 2
+        }).addTo(map);
+        floodLayers.push(circle);
+    });
+    
+    // Add Low risk areas with smaller circles
+    FLOOD_COORDS.LOW.forEach(c=>{
+        const circle = L.circle(c, {
+            radius: 80, 
+            color: 'blue', 
+            fillColor: 'blue', 
+            fillOpacity: 0.2,
+            weight: 2
+        }).addTo(map);
+        floodLayers.push(circle);
+    });
+
+    // Show legend
+    floodLegend.addTo(map);
+
+    // Zoom to bounds with padding
+    const allCoords = [...FLOOD_COORDS.HIGH, ...FLOOD_COORDS.MEDIUM, ...FLOOD_COORDS.LOW];
+    const bounds = L.latLngBounds(allCoords);
+    map.fitBounds(bounds.pad(0.2));
+}
+
+// Function to clear flood simulation
+function clearFloodSimulation() {
+    floodLayers.forEach(l => map.removeLayer(l));
+    floodLayers = [];
+    map.removeControl(floodLegend);
+}
+
 // Add dynamic waypoint input
 document.getElementById("addWaypoint").addEventListener("click", ()=>{
     const container = document.createElement("div");
@@ -555,6 +701,12 @@ document.getElementById("simulateBtn").addEventListener("click", ()=>{
     if(coordsList.length < 2){ alert("Add at least 2 waypoints"); return; }
     simulateRoute(coordsList);
 });
+
+// Flood simulation button
+document.getElementById("simulateFloodBtn").addEventListener("click", simulateFlood);
+
+// Clear flood simulation button
+document.getElementById("clearFloodBtn").addEventListener("click", clearFloodSimulation);
 
 function clearMap() {
     routeLayers.forEach(l => map.removeLayer(l));

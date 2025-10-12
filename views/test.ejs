@@ -8,96 +8,491 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
 <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
 <style>
-html, body { height:100%; margin:0; padding:0; font-family:sans-serif; }
-body { display:flex; flex-direction:row; min-height:100vh; }
-
-#panel {
-    width: 300px;
-    overflow-y:auto;
-    padding: 10px;
-    background:#f0f0f0;
-    box-sizing:border-box;
-    transition: all 0.2s;
+:root {
+  --primary-green: #2e7d32;
+  --primary-green-light: #4caf50;
+  --primary-green-dark: #1b5e20;
+  --secondary-green: #81c784;
+  --accent-green: #a5d6a7;
+  --light-bg: #f1f8e9;
+  --panel-bg: #e8f5e9;
+  --text-dark: #1b5e20;
+  --text-light: #ffffff;
+  --border-light: #c8e6c9;
+  --shadow: rgba(46, 125, 50, 0.2);
 }
-#map { flex:1; height:100vh; }
 
-.route-item { border:1px solid #ccc; padding:5px; margin-bottom:5px; cursor:pointer; }
-.route-item.selected { background:#d0ebff; border-color:#3399ff; }
-.input-box { margin-bottom:10px; }
-label { font-weight:bold; }
+html, body { 
+  height:100%; 
+  margin:0; 
+  padding:0; 
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--light-bg);
+  color: var(--text-dark);
+}
 
-/* Mobile adjustments */
+body { 
+  display:flex; 
+  flex-direction:row; 
+  min-height:100vh; 
+}
+
+#panel { 
+  width: 320px;
+  overflow-y: auto;
+  padding: 20px;
+  background: var(--panel-bg);
+  box-sizing: border-box;
+  box-shadow: 2px 0 10px var(--shadow);
+  z-index: 1000;
+}
+
+#map { 
+  flex:1; 
+  height:100vh; 
+}
+
+.panel-header {
+  text-align: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.panel-header h1 {
+  color: var(--primary-green-dark);
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.input-box { 
+  margin-bottom: 20px; 
+}
+
+.form-label { 
+  font-weight: 600;
+  color: var(--primary-green-dark);
+  margin-bottom: 8px;
+  display: block;
+}
+
+.form-select, .form-control {
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  padding: 10px 12px;
+  transition: all 0.3s;
+  background-color: white;
+  color: var(--text-dark);
+}
+
+.form-select:focus, .form-control:focus {
+  border-color: var(--primary-green-light);
+  box-shadow: 0 0 0 0.2rem rgba(76, 175, 80, 0.25);
+}
+
+.btn {
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-weight: 600;
+  transition: all 0.3s;
+  border: none;
+}
+
+.btn-primary {
+  background-color: var(--primary-green);
+  color: var(--text-light);
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-green-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px var(--shadow);
+}
+
+.btn-secondary {
+  background-color: var(--secondary-green);
+  color: var(--text-dark);
+}
+
+.btn-secondary:hover {
+  background-color: var(--primary-green-light);
+  color: var(--text-light);
+}
+
+.btn-warning {
+  background-color: #ff9800;
+  color: white;
+}
+
+.btn-warning:hover {
+  background-color: #f57c00;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(255, 152, 0, 0.3);
+}
+
+.route-item {
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  word-wrap: break-word;
+  background-color: white;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.route-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px var(--shadow);
+  border-color: var(--primary-green-light);
+}
+
+.route-item.selected {
+  background: var(--accent-green);
+  border-color: var(--primary-green);
+  box-shadow: 0 4px 8px var(--shadow);
+}
+
+.waypoint-container {
+  margin-bottom: 10px;
+}
+
+.waypoint-actions {
+  display: flex;
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.btn-sm {
+  padding: 5px 10px;
+  font-size: 0.875rem;
+}
+
+.btn-danger {
+  background-color: #e53935;
+  color: white;
+}
+
+.btn-danger:hover {
+  background-color: #c62828;
+}
+
+.leaflet-div-icon { 
+  background: none; 
+  border: none; 
+}
+
+.node-label { 
+  width: 30px !important; 
+  height: 30px !important; 
+  line-height: 30px; 
+  border-radius: 50%; 
+  background: var(--primary-green); 
+  color: white; 
+  text-align: center; 
+  font-weight: bold; 
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.flood-legend {
+  background: white;
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 0 0 15px rgba(0,0,0,0.2);
+  line-height: 18px;
+  color: #555;
+  /* display: none; */
+}
+
+.flood-legend h4 {
+  margin: 0 0 10px;
+  text-align: center;
+}
+
+.flood-legend i {
+  width: 18px;
+  height: 18px;
+  float: left;
+  margin-right: 8px;
+  opacity: 0.7;
+  border-radius: 3px;
+}
+
+.flood-legend div {
+  margin-bottom: 5px;
+}
+
+.flood-simulation-controls {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid var(--border-light);
+}
+
 @media (max-width:768px){
-    body { flex-direction:column; }
-    #panel {
-        width:100%;
-        max-height:300px;
-        overflow-y:auto;
-        order:1;
-        z-index:1000;
-    }
-    #map {
-        height: calc(100vh - 300px);
-        width:100%;
-        order:0;
-    }
+  body { flex-direction:column; }
+  #panel { 
+    width:100%; 
+    max-height:300px; 
+    overflow-y:auto; 
+    order:1; 
+    z-index:1000; 
+    padding: 15px;
+  }
+  #map { 
+    height: calc(100vh - 300px); 
+    width:100%; 
+    order:0; 
+  }
+  .panel-header h1 {
+    font-size: 1.3rem;
+  }
 }
+
 @media (max-width:480px){
-    #panel { max-height:280px; padding:6px; }
-    #map { height: calc(100vh - 280px); }
-    .route-item { font-size:0.95em; }
-    label { font-size:0.98em; }
+  #panel { 
+    max-height:280px; 
+    padding:12px; 
+  }
+  #map { 
+    height: calc(100vh - 280px); 
+  }
+  .route-item { 
+    font-size:0.95em; 
+    padding: 10px;
+  }
+  .form-label { 
+    font-size:0.98em; 
+  }
 }
-.leaflet-div-icon {
-    background: none;
-    border: none;
+
+.route-info {
+  font-size: 0.9rem;
+  margin-top: 5px;
+  color: var(--primary-green-dark);
 }
-.node-label {
-    width: 30px !important;
-    height: 30px !important;
-    line-height: 30px;
-    border-radius: 50%;
-    background: green;
-    color: white;
-    text-align: center;
-    font-weight: bold;
-    border: none;
+
+.cluster-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 12px;
+  background-color: var(--primary-green);
+  color: white;
+  font-size: 0.8rem;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+/* Custom scrollbar for panel */
+#panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+#panel::-webkit-scrollbar-track {
+  background: var(--light-bg);
+}
+
+#panel::-webkit-scrollbar-thumb {
+  background: var(--secondary-green);
+  border-radius: 4px;
+}
+
+#panel::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-green-light);
 }
 </style>
 </head>
 <body>
 
 <div id="panel" class="bg-light p-3">
-    <div class="input-box mb-3">
-        <label class="form-label">From:</label>
-        <select id="fromSelect" class="form-select mb-2">
-            <option value="">-- Select Start --</option>
-            <option value="13.186272,123.65848">BFP (Origin)</option>
-            <option value="13.190000,123.660000">Point B</option>
-            <option value="13.200000,123.670000">Point C</option>
-        </select>
+  <div class="panel-header">
+    <h1>Camalig Route Simulator</h1>
+  </div>
+  
+  <div class="input-box mb-3">
+    <label class="form-label">Select Cluster:</label>
+    <select id="presetSelect" class="form-select mb-3">
+      <option value="" disabled selected>-- Select Cluster --</option>
+      <option value="EAST">EAST</option>
+      <option value="NORTH">NORTH</option>
+      <option value="WEST">WEST</option>
+      <option value="POBLACION">POBLACION</option>
+    </select>
 
-        <label class="form-label">To:</label>
-        <select id="toSelect" class="form-select mb-2">
-            <option value="">-- Select Destination --</option>
-            <option value="13.16888573371113,123.62755552821616">Point X</option>
-            <option value="13.160000,123.650000">Point Y</option>
-            <option value="13.170000,123.660000">Point Z</option>
-        </select>
+    <label class="form-label">Select Trip:</label>
+    <select id="tripSelect" class="form-select mb-3">
+      <option value="" disabled selected>-- Select Trip --</option>
+    </select>
 
-        <button id="simulateBtn" class="btn btn-success w-100">Simulate Route</button>
+    <label class="form-label">Or Dynamic Waypoints:</label>
+    <div id="waypointsContainer" class="mb-2">
+      <div class="waypoint-container">
+        <input type="text" class="form-control waypoint" placeholder="lat,lon (e.g. 13.186272,123.65848)">
+        <div class="waypoint-actions">
+          <button class="btn btn-danger btn-sm remove-waypoint">Remove</button>
+        </div>
+      </div>
     </div>
-    <div id="routeList"></div>
+    <button id="addWaypoint" class="btn btn-secondary w-100 mb-3">+ Add Waypoint</button>
+    <button id="simulateBtn" class="btn btn-primary w-100">Simulate Route</button>
+    
+    <!-- Flood Simulation Controls -->
+    <div class="flood-simulation-controls">
+      <button id="simulateFloodBtn" class="btn btn-warning w-100 mb-2">Simulate Flood</button>
+      <button id="clearFloodBtn" class="btn btn-secondary w-100">Clear Flood Simulation</button>
+    </div>
+  </div>
+  
+  <div id="routeList"></div>
 </div>
 
 <div id="map"></div>
 
 <script>
-// ================= Load nodes =================
-let nodes = [];
-fetch("./test/camalig_nodes.json").then(res=>res.json()).then(data=>nodes=data);
+// Flood data
+const FLOOD_COORDS = {
+    HIGH: [
+        [13.1663752,123.6390575], [13.1633786,123.6253100], [13.1778072,123.6548366],
+        [13.1833199,123.6609898], [13.1911754,123.6550448], [13.1800698,123.6711842],
+        [13.1958818,123.6404964], [13.1575537,123.6215714], [13.157542,123.621614]
+    ],
+    MEDIUM: [
+        [13.16943082,123.64861903], [13.1773306,123.6513749], [13.1879272,123.6630409],
+        [13.1946542,123.6452255], [13.1606990,123.6323987], [13.1768422,123.6508674]
+    ],
+    LOW: [
+        [13.1779755,123.6433904], [13.1796393,123.6540673], [13.1812760,123.6541214],
+        [13.1785292,123.6528645], [13.1831296,123.6590014], [13.1873790,123.6605608],
+        [13.187042,123.653694]
+    ]
+};
 
-// ================= Helper =================
+// Detect OSRM server
+let OSRM_SERVER = "http://127.0.0.1:5000"; // default local
+async function detectOSRM() {
+    try {
+        const res = await fetch("http://127.0.0.1:5000/route/v1/driving/0,0;0,0");
+        if (!res.ok) OSRM_SERVER = "https://router.project-osrm.org";
+    } catch (e) {
+        OSRM_SERVER = "https://router.project-osrm.org";
+    }
+    console.log("Using OSRM server:", OSRM_SERVER);
+}
+detectOSRM();
+
+let nodes = [], routeLayers = [], nodeMarkers = [];
+let floodLayers = [];
+
+// Load road network nodes
+fetch("road_network.json").then(res => res.json()).then(data => nodes = data);
+
+// Node coordinates
+// NORTH cluster coordinates (0–10)
+const NODE_COORDS_NORTH = {
+    0: [13.186504, 123.658612],
+    1: [13.1888218,123.6644],
+    2: [13.18767269,123.6731],
+    3: [13.17699561,123.668],
+    4: [13.1946683,123.6451],
+    5: [13.1990854,123.6717],
+    6: [13.1987231,123.6374],
+    7: [13.20025038,123.6552],
+    8: [13.18206941,123.661],
+    9: [13.17622371,123.6498],
+    10:[13.17930548,123.6325]
+};
+
+// EAST cluster coordinates (keep your original or separate if needed)
+const NODE_COORDS_EAST = {
+    0:  [13.186504, 123.658612],
+    1:  [13.17179403, 123.661],
+    2:  [13.16666488, 123.6536],
+    3:  [13.15759358, 123.662],
+    4:  [13.1557856,  123.6523],
+    5:  [13.14877073, 123.6649],
+    6:  [13.14246553, 123.6578],
+    7:  [13.15199952, 123.6424],
+    8:  [13.13267441, 123.6481],
+    9:  [13.1356055,  123.6688],
+    10: [13.13111708, 123.6596],
+    11: [13.11500606, 123.6602],
+    12: [13.11859982, 123.6463],
+    13: [13.09831781, 123.6523],
+    14: [13.09580123, 123.6644],
+    15: [13.07517471, 123.6608],
+    16: [13.06468681, 123.6699],
+    17: [13.09396687, 123.6334],
+    18: [13.07816417, 123.6426]
+};
+
+const NODE_COORDS_POBLACION = {
+    0: [13.186504, 123.658612],
+    1: [13.18676963,123.6573],
+    2: [13.18533555,123.6522],
+    3: [13.18617687,123.6503],
+    4: [13.1860181,123.6459],
+    5: [13.18006194,123.6556],
+    6: [13.17880965,123.6556],
+    7: [13.18161537,123.6561]
+};
+
+// WEST cluster coordinates (1–15)
+const NODE_COORDS_WEST = {
+    0:  [13.186504, 123.658612],
+    1:  [13.16683524, 123.6396],
+    2:  [13.16600472, 123.623],
+    3:  [13.15008081, 123.618],
+    4:  [13.13334241, 123.6104],
+    5:  [13.12310983, 123.5987],
+    6:  [13.14540131, 123.629],
+    7:  [13.10785354, 123.5828],
+    8:  [13.11880835, 123.6214],
+    9:  [13.10958705, 123.5987],
+    10: [13.11839071, 123.6353],
+    11: [13.10266989, 123.6062],
+    12: [13.09422393, 123.5959],
+    13: [13.09670044, 123.616],
+    14: [13.07668081, 123.6303],
+    15: [13.09398764, 123.5717264]
+};
+
+// Predefined trips for clusters
+const PRESETS = {
+    "EAST": [
+        [0,1,3], [0,3,5,6], [0,6,10,11], [0,11],
+        [0,11,13,14,15], [0,15,16,18], [0,18,17,12,8],
+        [0,8,7], [0,7,4], [0,4,2,9]
+    ],
+    "NORTH": [
+        [0,1,8,0],
+        [0,8,3,0],
+        [0,3,2,0],
+        [0,2,5,9,0],
+        [0,9,10,0],
+        [0,10,0],
+        [0,10,4,6,0],
+        [0,6,7,0],
+        [0,7,0]
+    ],
+    "WEST": [
+        [0,1,0],
+        [0,1,0],
+        [0,1,2,0],
+        [0,2,3,0],
+        [0,3,4,0],
+        [0,4,5,9,0],
+        [0,9,12,11,13,8,0],
+        [0,8,10,7,0],
+        [0,7,6,15,14,0]
+    ],
+    "POBLACION": [
+    [0,1,7,5,6,2,0],
+    [0,2,3,4,0]
+    ]
+};
+
 function distance(lat1, lon1, lat2, lon2){
     const R = 6371000;
     const dLat = ((lat2-lat1)*Math.PI)/180;
@@ -105,140 +500,315 @@ function distance(lat1, lon1, lat2, lon2){
     const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
-function nearestLabeledNode(lat, lon){
+
+function nearestNode(lat, lon){
     let minDist = Infinity, nearest = null;
     for(let n of nodes){
         const d = distance(lat, lon, n.lat, n.lon);
-        if(d<minDist){ minDist=d; nearest=n; }
+        if(d < minDist){ minDist = d; nearest = n; }
     }
     return nearest;
 }
 
-// ================= Leaflet Map =================
+// Initialize map
 const map = L.map('map').setView([13.18,123.66],13);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
-let routeLayers=[], nodeMarkers=[], startMarker=null, endMarker=null;
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19}).addTo(map);
 
-// ================= Simulate =================
+// Add flood legend
+function addFloodLegend() {
+  const legend = L.control({position: 'bottomright'});
+  legend.onAdd = function (map) {
+    const div = L.DomUtil.create('div', 'flood-legend');
+    div.innerHTML = `
+      <h4>Flood Risk Level</h4>
+      <div><i style="background: #ff0000"></i> High Risk</div>
+      <div><i style="background: #ffff00"></i> Medium Risk</div>
+      <div><i style="background: #0000ff"></i> Low Risk</div>
+    `;
+    return div;
+  };
+  return legend;
+}
+
+const floodLegend = addFloodLegend();
+
+// Function to simulate flood with spread out visualization
+function simulateFlood() {
+    // Clear previous flood layers
+    floodLayers.forEach(l => map.removeLayer(l));
+    floodLayers = [];
+
+    // Add High risk areas with larger circles
+    FLOOD_COORDS.HIGH.forEach(c=>{
+        const circle = L.circle(c, {
+            radius: 80, 
+            color: 'red', 
+            fillColor: 'red', 
+            fillOpacity: 0.2,
+            weight: 2
+        }).addTo(map);
+        floodLayers.push(circle);
+    });
+    
+    // Add Medium risk areas with medium circles
+    FLOOD_COORDS.MEDIUM.forEach(c=>{
+        const circle = L.circle(c, {
+            radius: 80, 
+            color: 'yellow', 
+            fillColor: 'yellow', 
+            fillOpacity: 0.2,
+            weight: 2
+        }).addTo(map);
+        floodLayers.push(circle);
+    });
+    
+    // Add Low risk areas with smaller circles
+    FLOOD_COORDS.LOW.forEach(c=>{
+        const circle = L.circle(c, {
+            radius: 80, 
+            color: 'blue', 
+            fillColor: 'blue', 
+            fillOpacity: 0.2,
+            weight: 2
+        }).addTo(map);
+        floodLayers.push(circle);
+    });
+
+    // Show legend
+    floodLegend.addTo(map);
+
+    // Zoom to bounds with padding
+    const allCoords = [...FLOOD_COORDS.HIGH, ...FLOOD_COORDS.MEDIUM, ...FLOOD_COORDS.LOW];
+    const bounds = L.latLngBounds(allCoords);
+    map.fitBounds(bounds.pad(0.2));
+}
+
+// Function to clear flood simulation
+function clearFloodSimulation() {
+    floodLayers.forEach(l => map.removeLayer(l));
+    floodLayers = [];
+    map.removeControl(floodLegend);
+}
+
+// Add dynamic waypoint input
+document.getElementById("addWaypoint").addEventListener("click", ()=>{
+    const container = document.createElement("div");
+    container.className = "waypoint-container";
+    
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "form-control waypoint";
+    input.placeholder = "lat,lon (e.g. 13.186272,123.65848)";
+    
+    const actions = document.createElement("div");
+    actions.className = "waypoint-actions";
+    
+    const removeBtn = document.createElement("button");
+    removeBtn.className = "btn btn-danger btn-sm remove-waypoint";
+    removeBtn.textContent = "Remove";
+    removeBtn.addEventListener("click", () => {
+        container.remove();
+    });
+    
+    actions.appendChild(removeBtn);
+    container.appendChild(input);
+    container.appendChild(actions);
+    
+    document.getElementById("waypointsContainer").appendChild(container);
+});
+
+// Add event delegation for remove buttons
+document.getElementById("waypointsContainer").addEventListener("click", (e) => {
+    if (e.target.classList.contains("remove-waypoint")) {
+        e.target.closest(".waypoint-container").remove();
+    }
+});
+
+// When cluster changes, fill trips
+document.getElementById("presetSelect").addEventListener("change", ()=>{
+    clearMap();
+    const cluster = document.getElementById("presetSelect").value;
+    const tripSelect = document.getElementById("tripSelect");
+    tripSelect.innerHTML = `<option value="" disabled selected>-- Select Trip --</option>`;
+    if(!cluster || !PRESETS[cluster]) return;
+
+    PRESETS[cluster].forEach((trip, i)=>{
+        const option = document.createElement("option");
+        option.value = i;
+        option.text = `Trip [${trip.join(",")}]`;
+        tripSelect.appendChild(option);
+    });
+});
+
+// When trip is selected, fill waypoints and map
+document.getElementById("tripSelect").addEventListener("change", ()=>{
+    clearMap();
+    const cluster = document.getElementById("presetSelect").value;
+    if(!cluster) return;
+    const index = parseInt(document.getElementById("tripSelect").value);
+    if(isNaN(index)) return;
+
+    const tripNodes = PRESETS[cluster][index];
+    let clusterCoords;
+    if(cluster === "NORTH") clusterCoords = NODE_COORDS_NORTH;
+    else if(cluster === "EAST") clusterCoords = NODE_COORDS_EAST;
+    else if(cluster === "POBLACION") clusterCoords = NODE_COORDS_POBLACION;
+    else if(cluster === "WEST") clusterCoords = NODE_COORDS_WEST;
+    else clusterCoords = NODE_COORDS; // fallback
+
+    const coordsList = tripNodes.map(n => clusterCoords[n]);
+
+    const container = document.getElementById("waypointsContainer");
+    container.innerHTML = "";
+    coordsList.forEach(c=>{
+        const waypointContainer = document.createElement("div");
+        waypointContainer.className = "waypoint-container";
+        
+        const input = document.createElement("input");
+        input.type = "text";
+        input.className = "form-control waypoint";
+        input.value = c.join(",");
+        
+        const actions = document.createElement("div");
+        actions.className = "waypoint-actions";
+        
+        const removeBtn = document.createElement("button");
+        removeBtn.className = "btn btn-danger btn-sm remove-waypoint";
+        removeBtn.textContent = "Remove";
+        removeBtn.addEventListener("click", () => {
+            waypointContainer.remove();
+        });
+        
+        actions.appendChild(removeBtn);
+        waypointContainer.appendChild(input);
+        waypointContainer.appendChild(actions);
+        container.appendChild(waypointContainer);
+    });
+
+    // Automatically simulate this trip
+    simulateRoute(coordsList);
+});
+
+// Simulate button
 document.getElementById("simulateBtn").addEventListener("click", ()=>{
-    const fromVal = document.getElementById("fromSelect").value;
-    const toVal = document.getElementById("toSelect").value;
-    if(!fromVal || !toVal){ alert("Select both From and To"); return; }
+    const waypointInputs = document.querySelectorAll(".waypoint");
+    const coordsList = [];
+    waypointInputs.forEach(input=>{
+        if(input.value.trim()==="") return;
+        const [lat, lon] = input.value.split(",").map(Number);
+        coordsList.push([lat, lon]);
+    });
+    if(coordsList.length < 2){ alert("Add at least 2 waypoints"); return; }
+    simulateRoute(coordsList);
+});
 
-    const [fromLat, fromLng] = fromVal.split(',').map(s=>Number(s.trim()));
-    const [toLat, toLng] = toVal.split(',').map(s=>Number(s.trim()));
-    const startNode = nearestLabeledNode(fromLat, fromLng);
-    const endNode = nearestLabeledNode(toLat, toLng);
+// Flood simulation button
+document.getElementById("simulateFloodBtn").addEventListener("click", simulateFlood);
 
-    const url = `https://router.project-osrm.org/route/v1/driving/${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson&steps=true&alternatives=true`;
-    fetch(url).then(res=>res.json()).then(data=>{
-        if(!data.routes || data.routes.length===0){ alert("No routes found"); return; }
-        const routes = data.routes;
-        const routeListDiv = document.getElementById('routeList');
-        routeListDiv.innerHTML='';
-        routeLayers.forEach(l=>map.removeLayer(l));
-        routeLayers=[];
-        nodeMarkers.forEach(m=>map.removeLayer(m));
-        nodeMarkers=[];
-        if(startMarker) map.removeLayer(startMarker);
-        if(endMarker) map.removeLayer(endMarker);
+// Clear flood simulation button
+document.getElementById("clearFloodBtn").addEventListener("click", clearFloodSimulation);
 
-        // Add start/end markers
-        startMarker = L.marker([fromLat, fromLng], {icon:L.icon({iconUrl:'https://cdn-icons-png.flaticon.com/512/25/25694.png', iconSize:[25,25]})}).addTo(map).bindPopup("Start");
-        endMarker = L.marker([toLat, toLng], {icon:L.icon({iconUrl:'https://cdn-icons-png.flaticon.com/512/685/685352.png', iconSize:[25,25]})}).addTo(map).bindPopup("End");
+function clearMap() {
+    routeLayers.forEach(l => map.removeLayer(l));
+    routeLayers = [];
+    nodeMarkers.forEach(m => map.removeLayer(m));
+    nodeMarkers = [];
+    document.getElementById("routeList").innerHTML = "";
+}
 
-        routes.forEach((route,i)=>{
-            const coords = route.geometry.coordinates.map(c=>[c[1],c[0]]);
-            const layer = L.polyline(coords,{color:'blue',weight:4,opacity:0.5}).addTo(map);
-            routeLayers.push(layer);
+// Function to simulate route with alternatives
+async function simulateRoute(coordsList){
+    // Clear old routes, retain markers
+    routeLayers.forEach(l=>map.removeLayer(l));
+    routeLayers = [];
 
-            // Map route intersections to nearest labeled nodes
-            let passedLabels=[], reachedEnd=false;
-            route.legs[0].steps.forEach(step=>{
-                if(reachedEnd) return;
+    const osrmCoords = coordsList.map(c=>`${c[1]},${c[0]}`).join(";");
+    const urlForward = `${OSRM_SERVER}/route/v1/driving/${osrmCoords}?overview=full&geometries=geojson&steps=true&alternatives=true`;
+    const urlReturn = `${OSRM_SERVER}/route/v1/driving/${coordsList.slice().reverse().map(c=>c[1]+","+c[0]).join(";")}?overview=false&geometries=geojson&steps=false`;
+
+    const [forwardData, returnData] = await Promise.all([
+        fetch(urlForward).then(res=>res.json()),
+        fetch(urlReturn).then(res=>res.json())
+    ]);
+
+    if(!forwardData.routes || forwardData.routes.length===0){ alert("No forward routes found"); return; }
+
+    const routeListDiv = document.getElementById("routeList");
+    routeListDiv.innerHTML = "";
+
+    forwardData.routes.forEach((route, i)=>{
+        const coords = route.geometry.coordinates.map(c=>[c[1],c[0]]);
+        const layer = L.polyline(coords,{color:'#2e7d32',weight:5,opacity:0.7}).addTo(map);
+        routeLayers.push(layer);
+
+        let passedLabels = [];
+        route.legs.forEach(leg=>{
+            leg.steps.forEach(step=>{
                 step.intersections.forEach(inter=>{
-                    if(reachedEnd) return;
-                    const nearest = nearestLabeledNode(inter.location[1], inter.location[0]);
-                    if(nearest && !passedLabels.includes(nearest.label)){
-                        passedLabels.push(nearest.label);
-                        if(nearest.label===endNode.label) reachedEnd=true;
-                    }
+                    const nearest = nearestNode(inter.location[1], inter.location[0]);
+                    if(nearest && !passedLabels.includes(nearest.label)) passedLabels.push(nearest.label);
                 });
             });
-            passedLabels.unshift("POINT A");
-            passedLabels.push("POINT B");
+        });
+        passedLabels.unshift("0"); passedLabels.push("0");
 
-            // Add numbered markers for nodes using DivIcon
-            passedLabels.forEach((label, index)=>{
+        if(i===0){
+            // Display numbered markers for first route
+            nodeMarkers.forEach(m=>map.removeLayer(m));
+            nodeMarkers = [];
+            passedLabels.forEach((label, idx)=>{
                 const node = nodes.find(n=>n.label===label);
                 if(node){
-                    const icon = L.divIcon({
-                        className:'node-label',
-                        html:`${index+1}`
-                    });
+                    const icon = L.divIcon({className:'node-label', html: idx+1});
+                    const marker = L.marker([node.lat,node.lon],{icon:icon}).addTo(map);
+                    nodeMarkers.push(marker);
+                }
+            });
+        }
+
+        const totalDistance = route.distance + returnData.routes[0].distance;
+        const totalDuration = route.duration + returnData.routes[0].duration;
+
+        const item = document.createElement("div");
+        item.className = "route-item";
+        item.innerHTML = `
+            <div><b>Trip ${i+1}</b> <span class="cluster-badge">${(totalDistance/1000).toFixed(2)} km</span></div>
+            <div class="route-info">Duration: ${Math.round(totalDuration/60)} min</div>
+            <div class="route-info">Nodes: [${passedLabels.join(",")}]</div>
+        `;
+        
+        // Add click to select alternative route
+        item.addEventListener("click", ()=>{
+            routeLayers.forEach(l=>l.setStyle({opacity:0.3,color:"#81c784"}));
+            layer.setStyle({opacity:1,color:"#1b5e20", weight: 6});
+            routeListDiv.querySelectorAll(".route-item").forEach(el=>el.classList.remove("selected"));
+            item.classList.add("selected");
+
+            // Update markers for selected route
+            nodeMarkers.forEach(m=>map.removeLayer(m));
+            nodeMarkers = [];
+            passedLabels.forEach((label, idx)=>{
+                const node = nodes.find(n=>n.label===label);
+                if(node){
+                    const icon = L.divIcon({className:'node-label', html: idx+1});
                     const marker = L.marker([node.lat,node.lon],{icon:icon}).addTo(map);
                     nodeMarkers.push(marker);
                 }
             });
 
-            const item=document.createElement('div');
-            item.className='route-item';
-            item.innerHTML=`<b>${i+1}. ${(route.distance/1000).toFixed(2)} km via driving</b><br>${Math.round(route.duration/60)} min<br>Nodes: ${passedLabels.join(' → ')}`;
-            let startMarker = null;
-            let endMarker = null;
-
-            item.addEventListener('click', () => {
-                // reset polyline styles
-                routeLayers.forEach(l => l.setStyle({opacity:0.3,color:'blue'}));
-                layer.setStyle({opacity:1,color:'red'});
-
-                // reset selection style
-                item.parentNode.querySelectorAll('.route-item').forEach(el => el.classList.remove('selected'));
-                item.classList.add('selected');
-
-                map.fitBounds(layer.getBounds());
-
-                // remove previous node markers
-                nodeMarkers.forEach(m => map.removeLayer(m));
-                nodeMarkers = [];
-                if (startMarker) { map.removeLayer(startMarker); startMarker = null; }
-                if (endMarker) { map.removeLayer(endMarker); endMarker = null; }
-
-                // add start marker
-                // startMarker = L.marker([fromLat, fromLng], {icon: L.icon({iconUrl: 'start-flag.png', iconSize:[30,30]})}).addTo(map);
-                // add end marker
-                // endMarker = L.marker([toLat, toLng], {icon: L.icon({iconUrl: 'end-flag.png', iconSize:[30,30]})}).addTo(map);
-
-                // add numbered node markers
-                passedLabels.forEach((label, idx) => {
-                    // skip POINT A/B for numbering, or handle as needed
-                    if (label !== "POINT A" && label !== "POINT B") {
-                        const node = nodes.find(n => n.label === label);
-                        if(node){
-                            const marker = L.marker([node.lat,node.lon], {
-                                icon: L.divIcon({
-                                    className: 'node-label',
-                                    html: (idx), // order number
-                                    iconSize: [30,30],
-                                    iconAnchor: [15,15]
-                                })
-                            }).addTo(map);
-                            nodeMarkers.push(marker);
-                        }
-                    }
-                });
-            });
-
-            routeListDiv.appendChild(item);
+            map.fitBounds(layer.getBounds());
         });
 
-        map.fitBounds(routeLayers[0].getBounds());
-        routeLayers[0].setStyle({color:'red',opacity:1});
+        routeListDiv.appendChild(item);
+    });
+
+    // Automatically select first route
+    if(routeLayers[0]){
+        routeLayers[0].setStyle({color:'#1b5e20',opacity:1, weight: 6});
         routeListDiv.firstChild.classList.add('selected');
-
-    }).catch(err=>{ console.error(err); alert("Error fetching OSRM routes"); });
-});
+        map.fitBounds(routeLayers[0].getBounds());
+    }
+}
 </script>
-
 </body>
 </html>

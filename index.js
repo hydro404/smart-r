@@ -11,7 +11,7 @@ app.set('view engine', 'ejs');
 
 // Route for home
 app.get('/', (req, res) => {
-  res.render('test2', { name: NAME });
+  res.render('test', { name: NAME });
 });
 
 
