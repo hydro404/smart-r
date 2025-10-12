@@ -11,8 +11,9 @@ app.set('view engine', 'ejs');
 
 // Route for home
 app.get('/', (req, res) => {
-  res.render('test', { name: NAME });
+  res.render('test2', { name: NAME });
 });
+
 
 app.get('/extract-coordinates', (req, res) => {
   res.render('extract-coordinates');
