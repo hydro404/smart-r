@@ -12,6 +12,8 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: "&copy; OSM",
 }).addTo(map);
 
+window.addEventListener("resize", () => map.invalidateSize());
+
 /* ------------------ Data Holders ------------------ */
 let points = {},
   trips = [],
@@ -74,7 +76,11 @@ function loadCSVs() {
         const id = Number(row.label);
         const lat = parseFloat(row.lat);
         const lng = parseFloat(row.long ?? row.lng);
-        if (Number.isFinite(id) && Number.isFinite(lat) && Number.isFinite(lng)) {
+        if (
+          Number.isFinite(id) &&
+          Number.isFinite(lat) &&
+          Number.isFinite(lng)
+        ) {
           points[id] = [lat, lng];
           const icon = L.divIcon({
             className: "",
@@ -96,10 +102,11 @@ function loadCSVs() {
         complete: (res2) => {
           trips = res2.data.filter(
             (r) =>
-              (r.Zone || r.zone) &&
-              (r["Universal Trip"] || r["universal trip"])
+              (r.Zone || r.zone) && (r["Universal Trip"] || r["universal trip"])
           );
-          zones = [...new Set(trips.map((t) => t.Zone || t.zone))].filter(Boolean);
+          zones = [...new Set(trips.map((t) => t.Zone || t.zone))].filter(
+            Boolean
+          );
           zoneSelect.innerHTML = zones
             .map((z) => `<option>${z.toUpperCase()}</option>`)
             .join("");
@@ -192,10 +199,10 @@ analyzeBtn.addEventListener("click", async () => {
   if (!ut) return;
 
   const tripData = trips.find(
-    (t) =>
-      (t["Universal Trip"] ?? t["universal trip"])?.trim() === ut.trim()
+    (t) => (t["Universal Trip"] ?? t["universal trip"])?.trim() === ut.trim()
   );
-  const altTrip = tripData?.["Alternate Trip"] ?? tripData?.["alternate trip"] ?? "";
+  const altTrip =
+    tripData?.["Alternate Trip"] ?? tripData?.["alternate trip"] ?? "";
 
   analyzeBtn.disabled = true;
   analyzeBtn.textContent = "Analyzing...";
@@ -219,7 +226,9 @@ analyzeBtn.addEventListener("click", async () => {
         <label class="form-label fw-bold">Select Route Type:</label>
         <select id="routeMode" class="form-select w-100">
           <option value="main" selected>Main (OSRM)</option>
-          <option value="alt" ${altTrip ? "" : "disabled"}>Alternative (Hardcoded)</option>
+          <option value="alt" ${
+            altTrip ? "" : "disabled"
+          }>Alternative (Hardcoded)</option>
         </select>
       </div>
       <button id="drawAllBtn" class="btn btn-primary btn-block w-100 my-3">Draw Pathway</button>
@@ -278,10 +287,14 @@ analyzeBtn.addEventListener("click", async () => {
           coords = reversedCoords.length
             ? reversedCoords
             : [points[seg.fromId], points[seg.toId]];
-          dist = totalDist || haversine(...points[seg.fromId], ...points[seg.toId]);
+          dist =
+            totalDist || haversine(...points[seg.fromId], ...points[seg.toId]);
           duration = (dist / 1000 / 30) * 3600;
         } else if (type === "main") {
-          const json = await fetchRoutesBetween(points[seg.fromId], points[seg.toId]);
+          const json = await fetchRoutesBetween(
+            points[seg.fromId],
+            points[seg.toId]
+          );
           const route = json.routes[0];
           coords = route.geometry.coordinates.map((c) => [c[1], c[0]]);
           dist = route.distance;
@@ -289,7 +302,8 @@ analyzeBtn.addEventListener("click", async () => {
         } else if (HARD_CODED_SEGMENTS[key]) {
           const hardSeq = HARD_CODED_SEGMENTS[key];
           for (let j = 0; j < hardSeq.length - 1; j++) {
-            const p1 = points[hardSeq[j]], p2 = points[hardSeq[j + 1]];
+            const p1 = points[hardSeq[j]],
+              p2 = points[hardSeq[j + 1]];
             if (!p1 || !p2) continue;
             dist += haversine(p1[0], p1[1], p2[0], p2[1]);
           }
@@ -297,7 +311,13 @@ analyzeBtn.addEventListener("click", async () => {
           duration = (dist / 1000 / 30) * 3600;
         }
 
-        results.push({ from: seg.fromId, to: seg.toId, distance: dist, duration, coords });
+        results.push({
+          from: seg.fromId,
+          to: seg.toId,
+          distance: dist,
+          duration,
+          coords,
+        });
       }
 
       const totalDistance = results.reduce((a, b) => a + b.distance, 0);
@@ -320,9 +340,9 @@ analyzeBtn.addEventListener("click", async () => {
               <strong>Segment ${i + 1}:</strong> ${r.from} (${fromName}) → ${
               r.to
             } (${toName})<br>
-              <span class="text-muted small">Distance: ${(r.distance / 1000).toFixed(
-                2
-              )} km • ${(r.duration / 60).toFixed(1)} min</span>
+              <span class="text-muted small">Distance: ${(
+                r.distance / 1000
+              ).toFixed(2)} km • ${(r.duration / 60).toFixed(1)} min</span>
               ${deliveryInfo}
             </div>`;
           })
@@ -339,8 +359,12 @@ analyzeBtn.addEventListener("click", async () => {
           })
           .join("")}
         <hr class="my-2">
-        <div><strong>Total Distance:</strong> ${(totalDistance / 1000).toFixed(2)} km</div>
-        <div><strong>Total Duration:</strong> ${(totalDuration / 60).toFixed(1)} min</div>
+        <div><strong>Total Distance:</strong> ${(totalDistance / 1000).toFixed(
+          2
+        )} km</div>
+        <div><strong>Total Duration:</strong> ${(totalDuration / 60).toFixed(
+          1
+        )} min</div>
       </div>`;
 
       document.querySelectorAll(".segment-item").forEach((el, i) => {
@@ -348,8 +372,33 @@ analyzeBtn.addEventListener("click", async () => {
           clearDrawn();
           const r = results[i];
           if (!r.coords.length) return;
-          const poly = L.polyline(r.coords, { color: "#007bff", weight: 5 }).addTo(map);
+
+          const poly = L.polyline(r.coords, {
+            color: "#007bff",
+            weight: 5,
+          }).addTo(map);
           drawn.push(poly);
+
+          // Add arrowheads for this segment
+          const arrowHead = L.polylineDecorator(poly, {
+            patterns: [
+              {
+                offset: "5%",
+                repeat: "20%",
+                symbol: L.Symbol.arrowHead({
+                  pixelSize: 10,
+                  polygon: true,
+                  pathOptions: {
+                    color: "#004085",
+                    fillOpacity: 0.8,
+                    weight: 1,
+                  },
+                }),
+              },
+            ],
+          }).addTo(map);
+          drawn.push(arrowHead);
+
           map.fitBounds(poly.getBounds());
         });
       });
@@ -360,8 +409,31 @@ analyzeBtn.addEventListener("click", async () => {
         results.forEach((r) => {
           if (r.coords && r.coords.length) allCoords.push(...r.coords);
         });
-        const poly = L.polyline(allCoords, { color: "#28a745", weight: 4 }).addTo(map);
+
+        // Draw the route
+        const poly = L.polyline(allCoords, {
+          color: "#28a745",
+          weight: 4,
+        }).addTo(map);
         drawn.push(poly);
+
+        // Add directional arrows using PolylineDecorator
+        const arrowHead = L.polylineDecorator(poly, {
+          patterns: [
+            {
+              offset: "5%", // Start offset along line
+              repeat: "10%", // Repeat every 10%
+              symbol: L.Symbol.arrowHead({
+                pixelSize: 10,
+                polygon: true,
+                pathOptions: { color: "#155724", fillOpacity: 0.8, weight: 1 },
+              }),
+            },
+          ],
+        }).addTo(map);
+        drawn.push(arrowHead);
+
+        // Fit map to route bounds
         map.fitBounds(poly.getBounds());
       };
     }
