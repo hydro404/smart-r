@@ -24,6 +24,33 @@
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     />
     <link rel="stylesheet" href="css/style.css" />
+
+    <script>
+      async function hashPassword(password) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(password);
+        const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      }
+
+      const correctHash = '936a185caaa266bb9cbe981e9e05cb78cd732b0b3280eb944412bb6f8f8f07af'; // hash of your password
+
+      (async () => {
+        let authenticated = false;
+        while (!authenticated) {
+          const password = prompt("Enter password:");
+          if (password === null) continue; // prompt again if user presses cancel
+          const hashed = await hashPassword(password);
+          if (hashed === correctHash) {
+            alert("Access granted");
+            authenticated = true;
+          } else {
+            alert("Incorrect password. Try again.");
+          }
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="map"></div>
