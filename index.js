@@ -14,6 +14,14 @@ app.get('/', (req, res) => {
   res.render('index', { name: NAME });
 });
 
+app.get('/2', (req, res) => {
+  res.render('qgis-final');
+});
+
+app.get('/3', (req, res) => {
+  res.render('qgis-whole');
+});
+
 
 app.get('/extract-coordinates', (req, res) => {
   res.render('extract-coordinates');

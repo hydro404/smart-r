@@ -4,6 +4,8 @@ let blockedSegments = new Set();
 let barangayData = []; // for barangay info
 let barangayMarkers = []; // ← track markers for clearing
 let legendControl;
+let roadNetworkMarkers = [];
+let barangayPointMarkers = [];
 
 /* ------------------ Map Setup ------------------ */
 const map = L.map("map").setView([13.18669, 123.659158], 13);
@@ -13,6 +15,39 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 }).addTo(map);
 
 window.addEventListener("resize", () => map.invalidateSize());
+
+// 🧭 Barangay legend toggle handler
+document.getElementById("toggleLegend").addEventListener("change", (e) => {
+  const isChecked = e.target.checked;
+
+  if (!isChecked) {
+    // ❌ Only remove legend control (keep markers)
+    if (legendControl) map.removeControl(legendControl);
+  } else {
+    // ✅ Re-render the legend (without touching markers)
+    const currentZone = zoneSelect.value || zones[0];
+    renderBarangayLegend(currentZone, true);
+  }
+});
+
+const toggleBarangayCheckbox = document.getElementById("toggleBarangayPoints");
+const toggleRoadCheckbox = document.getElementById("toggleRoadNetwork");
+
+toggleBarangayCheckbox.addEventListener("change", (e) => {
+  const show = e.target.checked;
+  barangayPointMarkers.forEach((m) => {
+    if (show) m.addTo(map);
+    else map.removeLayer(m);
+  });
+});
+
+toggleRoadCheckbox.addEventListener("change", (e) => {
+  const show = e.target.checked;
+  roadNetworkMarkers.forEach((m) => {
+    if (show) m.addTo(map);
+    else map.removeLayer(m);
+  });
+});
 
 /* ------------------ Data Holders ------------------ */
 let points = {},
@@ -91,7 +126,12 @@ function loadCSVs() {
             iconSize: [26, 26],
             iconAnchor: [13, 13],
           });
-          L.marker([lat, lng], { icon }).addTo(map);
+          const marker = L.marker([lat, lng], { icon }).addTo(map);
+          if (id > 50) {
+            roadNetworkMarkers.push(marker);
+          } else {
+            barangayPointMarkers.push(marker);
+          }
         }
       });
 
@@ -112,10 +152,12 @@ function loadCSVs() {
             .join("");
           zoneSelect.onchange = () => {
             populateTrips();
-            renderBarangayLegend(zoneSelect.value);
+            if (document.getElementById("toggleLegend").checked) {
+              renderBarangayLegend(zoneSelect.value, true);
+            }
           };
           populateTrips();
-          renderBarangayLegend(zones[0]);
+          renderBarangayLegend(zones[0], true);
         },
       });
     },
@@ -123,36 +165,41 @@ function loadCSVs() {
 }
 
 /* ------------------ Barangay Legend ------------------ */
-function renderBarangayLegend(zoneValue) {
-  barangayMarkers.forEach((m) => map.removeLayer(m));
-  barangayMarkers = [];
+function renderBarangayLegend(zoneValue, skipMarkers = false) {
+  if (!skipMarkers) {
+    barangayMarkers.forEach((m) => map.removeLayer(m));
+    barangayMarkers = [];
+  }
+
   const filtered = barangayData.filter(
     (b) => (b.zone || "").toLowerCase() === zoneValue.toLowerCase()
   );
   if (!filtered.length) return;
 
-  filtered.forEach((row) => {
-    const lat = parseFloat(row.lat);
-    const lng = parseFloat(row.long);
-    if (!isFinite(lat) || !isFinite(lng)) return;
+  if (!skipMarkers) {
+    filtered.forEach((row) => {
+      const lat = parseFloat(row.lat);
+      const lng = parseFloat(row.long);
+      if (!isFinite(lat) || !isFinite(lng)) return;
 
-    const div = L.divIcon({
-      className: "",
-      html: `<div style="width:26px;height:26px;border-radius:50%;
-        background:#007bff;
-        color:#fff;display:flex;align-items:center;justify-content:center;
-        font-size:11px;border:2px solid #fff">${row.label}</div>`,
-      iconSize: [26, 26],
-      iconAnchor: [13, 13],
+      const div = L.divIcon({
+        className: "",
+        html: `<div style="width:26px;height:26px;border-radius:50%;
+          background:#007bff;
+          color:#fff;display:flex;align-items:center;justify-content:center;
+          font-size:11px;border:2px solid #fff">${row.label}</div>`,
+        iconSize: [26, 26],
+        iconAnchor: [13, 13],
+      });
+
+      const marker = L.marker([lat, lng], { icon: div })
+        .bindPopup(
+          `<strong>${row.barangay}</strong><br>Zone: ${row.zone}<br>Cluster: ${row.clustering_label}<br>Population: ${row.population}`
+        )
+        .addTo(map);
+      barangayMarkers.push(marker);
     });
-
-    const marker = L.marker([lat, lng], { icon: div })
-      .bindPopup(
-        `<strong>${row.barangay}</strong><br>Zone: ${row.zone}<br>Cluster: ${row.clustering_label}<br>Population: ${row.population}`
-      )
-      .addTo(map);
-    barangayMarkers.push(marker);
-  });
+  }
 
   if (legendControl) map.removeControl(legendControl);
   legendControl = L.control({ position: "bottomright" });
@@ -197,6 +244,9 @@ function populateTrips() {
 analyzeBtn.addEventListener("click", async () => {
   const ut = tripSelect.value;
   if (!ut) return;
+
+  // 🌀 Add spinner element if not exists
+  document.getElementById("analyzeSpinner").classList.remove("d-none");
 
   const tripData = trips.find(
     (t) => (t["Universal Trip"] ?? t["universal trip"])?.trim() === ut.trim()
@@ -421,8 +471,8 @@ analyzeBtn.addEventListener("click", async () => {
         const arrowHead = L.polylineDecorator(poly, {
           patterns: [
             {
-              offset: "5%", // Start offset along line
-              repeat: "10%", // Repeat every 10%
+              offset: "5%",
+              repeat: "10%",
               symbol: L.Symbol.arrowHead({
                 pixelSize: 10,
                 polygon: true,
@@ -433,7 +483,6 @@ analyzeBtn.addEventListener("click", async () => {
         }).addTo(map);
         drawn.push(arrowHead);
 
-        // Fit map to route bounds
         map.fitBounds(poly.getBounds());
       };
     }
@@ -441,13 +490,15 @@ analyzeBtn.addEventListener("click", async () => {
     routeModeSelect.addEventListener("change", (e) =>
       renderRouteList(e.target.value)
     );
-    renderRouteList("main");
+    await renderRouteList("main");
   } catch (err) {
     segmentsContainer.innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
     console.error(err);
   } finally {
     analyzeBtn.disabled = false;
     analyzeBtn.textContent = "Analyze Routes";
+    // 🌀 Hide spinner after done
+    document.getElementById("analyzeSpinner").classList.add("d-none");
   }
 });
 

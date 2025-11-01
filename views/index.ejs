@@ -15,8 +15,8 @@
       href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
       rel="stylesheet"
     />
-    
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <!-- Leaflet -->
     <link
@@ -25,7 +25,7 @@
     />
     <link rel="stylesheet" href="css/style.css" />
 
-    <script>
+    <!-- <script>
       async function hashPassword(password) {
         const encoder = new TextEncoder();
         const data = encoder.encode(password);
@@ -50,21 +50,49 @@
           }
         }
       })();
-    </script>
+    </script> -->
   </head>
   <body>
+    <!-- Spinner (hidden by default) -->
+    <div id="analyzeSpinner" class="spinner-overlay d-none">
+      <div class="spinner-border text-primary" role="status"></div>
+      <span class="ms-2 text-white fw-bold">Analyzing routes...</span>
+    </div>
+
     <div id="map"></div>
 
     <div id="side">
+
       <div class="panel-header text-center">
         <h1 class="fw-bold">SMART-R</h1>
-        <p style="color: #1b5e20;">Spatial Modeling and Analysis for Risk-based Transport Routing</p>
+        <p style="color: #1b5e20">
+          Spatial Modeling and Analysis for Risk-based Transport Routing
+        </p>
       </div>
 
+      
+      <div class="mb-2">
+        <input class="form-check-input" type="checkbox" id="toggleLegend" checked>
+        <label class="form-check-label" for="toggleLegend">Show Barangay Legend</label>
+      </div>
+
+      <div class="mb-2 border-top pt-2">
+        <strong class="d-block mb-1">Marker Visibility</strong>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="toggleBarangayPoints" checked>
+          <label class="form-check-label" for="toggleBarangayPoints">Show Barangay Points (0–50)</label>
+        </div>
+        <div class="form-check mt-1">
+          <input class="form-check-input" type="checkbox" id="toggleRoadNetwork" checked>
+          <label class="form-check-label" for="toggleRoadNetwork">Show Road Network Points (51+)</label>
+        </div>
+      </div>
+      
       <div class="mb-2">
         <label class="form-label small mb-1">Zone</label>
         <select id="zoneSelect" class="form-select"></select>
       </div>
+      
 
       <div class="mb-2">
         <label class="form-label small mb-1">Trip</label>
@@ -97,7 +125,12 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
     <!-- PolylineDecorator plugin -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-polylinedecorator/1.1.0/leaflet.polylineDecorator.min.js" integrity="sha512-2oK40N5b+8g4Fhp1rfdtmNaroXsh7tFN4OY6++9lB/Hb+uLQWmn0SSAXvnQfbn8BP8qtpri2YQLaFGpyzKUHow==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-polylinedecorator/1.1.0/leaflet.polylineDecorator.min.js"
+      integrity="sha512-2oK40N5b+8g4Fhp1rfdtmNaroXsh7tFN4OY6++9lB/Hb+uLQWmn0SSAXvnQfbn8BP8qtpri2YQLaFGpyzKUHow=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
     <script src="js/app.js"></script>
   </body>
 </html>
