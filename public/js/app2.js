@@ -17,30 +17,39 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 /* ------------------ Flood Heatmap Layer ------------------ */
 const FLOOD_COORDS = {
   HIGH: [
-    [13.1663752, 123.6390575], [13.1633786, 123.6253100],
-    [13.1778072, 123.6548366], [13.1833199, 123.6609898],
-    [13.1911754, 123.6550448], [13.1800698, 123.6711842],
-    [13.1958818, 123.6404964], [13.1575537, 123.6215714],
+    [13.1663752, 123.6390575],
+    [13.1633786, 123.62531],
+    [13.1778072, 123.6548366],
+    [13.1833199, 123.6609898],
+    [13.1911754, 123.6550448],
+    [13.1800698, 123.6711842],
+    [13.1958818, 123.6404964],
+    [13.1575537, 123.6215714],
     [13.157542, 123.621614],
   ],
   MEDIUM: [
-    [13.16943082, 123.64861903], [13.1879272, 123.6630409],
-    [13.1946542, 123.6452255], [13.1606990, 123.6323987],
+    [13.16943082, 123.64861903],
+    [13.1879272, 123.6630409],
+    [13.1946542, 123.6452255],
+    [13.160699, 123.6323987],
     [13.1768422, 123.6508674],
   ],
   LOW: [
-    [13.1779755, 123.6433904], [13.1796393, 123.6540673],
-    [13.1812760, 123.6541214], [13.1785292, 123.6528645],
-    [13.1831296, 123.6590014], [13.1873790, 123.6605608],
+    [13.1779755, 123.6433904],
+    [13.1796393, 123.6540673],
+    [13.181276, 123.6541214],
+    [13.1785292, 123.6528645],
+    [13.1831296, 123.6590014],
+    [13.187379, 123.6605608],
     [13.187042, 123.653694],
   ],
 };
 
 const floodPoints = [];
 // Lower the LOW intensity further to emphasize blue
-FLOOD_COORDS.HIGH.forEach(coord => floodPoints.push([...coord, 1.0]));
-FLOOD_COORDS.MEDIUM.forEach(coord => floodPoints.push([...coord, 0.6]));
-FLOOD_COORDS.LOW.forEach(coord => floodPoints.push([...coord, 0.1])); // changed from 0.3 to 0.1
+FLOOD_COORDS.HIGH.forEach((coord) => floodPoints.push([...coord, 1.0]));
+FLOOD_COORDS.MEDIUM.forEach((coord) => floodPoints.push([...coord, 0.6]));
+FLOOD_COORDS.LOW.forEach((coord) => floodPoints.push([...coord, 0.1])); // changed from 0.3 to 0.1
 
 const floodHeat = L.heatLayer(floodPoints, {
   radius: 45,
@@ -50,20 +59,22 @@ const floodHeat = L.heatLayer(floodPoints, {
   max: 1.0,
   // Adjust gradient so blue shows clearly for low values
   gradient: {
-    0.0: "blue",     // deep blue for lowest
-    0.3: "cyan",     // transition tone
-    0.5: "yellow",   // medium
-    0.8: "orange",   // high-medium
-    1.0: "red",      // highest
+    0.0: "blue", // deep blue for lowest
+    0.3: "cyan", // transition tone
+    0.5: "yellow", // medium
+    0.8: "orange", // high-medium
+    1.0: "red", // highest
   },
 }).addTo(map);
-
 
 // ✅ Flood Risk Legend
 const floodLegend = L.control({ position: "topright" });
 
 floodLegend.onAdd = function (map) {
-  const div = L.DomUtil.create("div", "info legend bg-white p-2 rounded shadow-sm");
+  const div = L.DomUtil.create(
+    "div",
+    "info legend bg-white p-2 rounded shadow-sm"
+  );
   div.innerHTML = `
     <strong>Flood Risk Legend</strong><br>
     <i style="background: blue; width: 18px; height: 18px; display: inline-block; margin-right: 6px;"></i> Low Risk<br>
@@ -76,14 +87,15 @@ floodLegend.onAdd = function (map) {
 floodLegend.addTo(map);
 
 // ✅ Toggle Flood Heatmap visibility
-document.getElementById("toggleFloodPoints").addEventListener("change", function () {
-  if (this.checked) {
-    map.addLayer(floodHeat);
-  } else {
-    map.removeLayer(floodHeat);
-  }
-});
-
+document
+  .getElementById("toggleFloodPoints")
+  .addEventListener("change", function () {
+    if (this.checked) {
+      map.addLayer(floodHeat);
+    } else {
+      map.removeLayer(floodHeat);
+    }
+  });
 
 window.addEventListener("resize", () => map.invalidateSize());
 
@@ -99,19 +111,20 @@ document.getElementById("toggleLegend").addEventListener("change", (e) => {
     const currentZone = zoneSelect.value || zones[0];
     renderBarangayLegend(currentZone, true);
   }
-  
 });
-document.getElementById("toggleFloodRiskLegend").addEventListener("change", (e) => {
-  const isChecked = e.target.checked;
+document
+  .getElementById("toggleFloodRiskLegend")
+  .addEventListener("change", (e) => {
+    const isChecked = e.target.checked;
 
-  if (!isChecked) {
-    // ❌ Remove legend from map (but keep layers visible)
-    if (floodLegend) map.removeControl(floodLegend);
-  } else {
-    // ✅ Re-add the legend to the map
-    floodLegend.addTo(map);
-  }
-});
+    if (!isChecked) {
+      // ❌ Remove legend from map (but keep layers visible)
+      if (floodLegend) map.removeControl(floodLegend);
+    } else {
+      // ✅ Re-add the legend to the map
+      floodLegend.addTo(map);
+    }
+  });
 
 const toggleBarangayCheckbox = document.getElementById("toggleBarangayPoints");
 const toggleRoadCheckbox = document.getElementById("toggleRoadNetwork");
@@ -397,33 +410,101 @@ analyzeBtn.addEventListener("click", async () => {
         });
       }
 
+      // 🟧 Handle Alternative Trip directly
+      if (type === "alt" && altTrip) {
+        const altSeq = altTrip
+          .split("-")
+          .map((n) => Number(n.trim()))
+          .filter(Number.isFinite);
+
+        const validCoords = altSeq
+          .map((id) => points[id])
+          .filter((p) => Array.isArray(p) && p.length === 2);
+
+        if (!validCoords.length) {
+          routeOutput.innerHTML = `<div class="alert alert-warning">⚠️ No valid coordinates found for Alternative Trip.</div>`;
+          return;
+        }
+
+        // Compute distance + duration
+        let totalDist = 0;
+        for (let i = 0; i < validCoords.length - 1; i++) {
+          totalDist += haversine(
+            validCoords[i][0],
+            validCoords[i][1],
+            validCoords[i + 1][0],
+            validCoords[i + 1][1]
+          );
+        }
+        const totalDuration = (totalDist / 1000 / 30) * 3600;
+
+        // Draw orange dashed line
+        const poly = L.polyline(validCoords, {
+          color: "#ff8c00",
+          weight: 4,
+          dashArray: "10,6",
+        }).addTo(map);
+        drawn.push(poly);
+
+        // Add arrowheads (optional)
+        if (L.Symbol?.arrowHead) {
+          const arrows = L.polylineDecorator(poly, {
+            patterns: [
+              {
+                offset: "5%",
+                repeat: "10%",
+                symbol: L.Symbol.arrowHead({
+                  pixelSize: 10,
+                  polygon: true,
+                  pathOptions: {
+                    color: "#e65100",
+                    fillOpacity: 0.9,
+                    weight: 1,
+                  },
+                }),
+              },
+            ],
+          }).addTo(map);
+          drawn.push(arrows);
+        }
+
+        map.fitBounds(poly.getBounds());
+
+        // Display summary
+        routeOutput.innerHTML = `
+      <div class="border rounded p-3 bg-light">
+        <h6 class="fw-bold text-warning mb-2">Alternative Trip Path</h6>
+        <div class="small mb-2">
+          <strong>Route:</strong> ${altSeq.join(" → ")}
+        </div>
+        <div><strong>Total Distance:</strong> ${(totalDist / 1000).toFixed(
+          2
+        )} km</div>
+        <div><strong>Estimated Duration:</strong> ${(
+          totalDuration / 60
+        ).toFixed(1)} min</div>
+        <hr>
+        <h6 class="fw-bold">Barangays Served:</h6>
+        ${Object.keys(nodesServedMap)
+          .map((id) => {
+            const b = getBarangayName(Number(id));
+            const d = nodesServedMap[id];
+            return `<div>${b} : ${d.delivered.toLocaleString()} / ${d.demand.toLocaleString()}</div>`;
+          })
+          .join("")}
+      </div>`;
+        return;
+      }
+
+      // 🟩 Main route logic (unchanged)
       for (let i = 0; i < segments.length; i++) {
         const seg = segments[i];
         const key = `${seg.fromId}-${seg.toId}`;
         let dist = 0,
           duration = 0,
-          coords = [],
-          seqNodes = [];
+          coords = [];
 
-        if (i === segments.length - 1) {
-          let reversedCoords = [],
-            totalDist = 0,
-            totalDuration = 0;
-          for (let j = results.length - 1; j >= 0; j--) {
-            const prev = results[j];
-            if (prev && prev.coords.length) {
-              reversedCoords.push(...[...prev.coords].reverse());
-              totalDist += prev.distance;
-              totalDuration += prev.duration;
-            }
-          }
-          coords = reversedCoords.length
-            ? reversedCoords
-            : [points[seg.fromId], points[seg.toId]];
-          dist =
-            totalDist || haversine(...points[seg.fromId], ...points[seg.toId]);
-          duration = (dist / 1000 / 30) * 3600;
-        } else if (type === "main") {
+        if (type === "main") {
           const json = await fetchRoutesBetween(
             points[seg.fromId],
             points[seg.toId]
@@ -453,9 +534,11 @@ analyzeBtn.addEventListener("click", async () => {
         });
       }
 
+      // Calculate totals
       const totalDistance = results.reduce((a, b) => a + b.distance, 0);
       const totalDuration = results.reduce((a, b) => a + b.duration, 0);
 
+      // Display result list (same as before)
       routeOutput.innerHTML =
         results
           .map((r, i) => {
@@ -469,37 +552,38 @@ analyzeBtn.addEventListener("click", async () => {
                 ].demand.toLocaleString()}</strong></div>`
               : "";
             return `
-            <div class="border rounded p-2 mb-2 segment-item" data-idx="${i}">
-              <strong>Segment ${i + 1}:</strong> ${r.from} (${fromName}) → ${
+        <div class="border rounded p-2 mb-2 segment-item" data-idx="${i}">
+          <strong>Segment ${i + 1}:</strong> ${r.from} (${fromName}) → ${
               r.to
             } (${toName})<br>
-              <span class="text-muted small">Distance: ${(
-                r.distance / 1000
-              ).toFixed(2)} km • ${(r.duration / 60).toFixed(1)} min</span>
-              ${deliveryInfo}
-            </div>`;
+          <span class="text-muted small">Distance: ${(
+            r.distance / 1000
+          ).toFixed(2)} km • ${(r.duration / 60).toFixed(1)} min</span>
+          ${deliveryInfo}
+        </div>`;
           })
           .join("") +
         `
-      <hr>
-      <div class="p-2 bg-light border rounded mt-3">
-        <h6 class="fw-bold mb-2">Barangays Served:</h6>
-        ${Object.keys(nodesServedMap)
-          .map((id) => {
-            const b = getBarangayName(Number(id));
-            const d = nodesServedMap[id];
-            return `<div>${b} : ${d.delivered.toLocaleString()} / ${d.demand.toLocaleString()}</div>`;
-          })
-          .join("")}
-        <hr class="my-2">
-        <div><strong>Total Distance:</strong> ${(totalDistance / 1000).toFixed(
-          2
-        )} km</div>
-        <div><strong>Total Duration:</strong> ${(totalDuration / 60).toFixed(
-          1
-        )} min</div>
-      </div>`;
+    <hr>
+    <div class="p-2 bg-light border rounded mt-3">
+      <h6 class="fw-bold mb-2">Barangays Served:</h6>
+      ${Object.keys(nodesServedMap)
+        .map((id) => {
+          const b = getBarangayName(Number(id));
+          const d = nodesServedMap[id];
+          return `<div>${b} : ${d.delivered.toLocaleString()} / ${d.demand.toLocaleString()}</div>`;
+        })
+        .join("")}
+      <hr class="my-2">
+      <div><strong>Total Distance:</strong> ${(totalDistance / 1000).toFixed(
+        2
+      )} km</div>
+      <div><strong>Total Duration:</strong> ${(totalDuration / 60).toFixed(
+        1
+      )} min</div>
+    </div>`;
 
+      // Segment click (draw blue segment + arrows)
       document.querySelectorAll(".segment-item").forEach((el, i) => {
         el.addEventListener("click", () => {
           clearDrawn();
@@ -512,17 +596,56 @@ analyzeBtn.addEventListener("click", async () => {
           }).addTo(map);
           drawn.push(poly);
 
-          // Add arrowheads for this segment
+          if (L.Symbol?.arrowHead) {
+            const arrowHead = L.polylineDecorator(poly, {
+              patterns: [
+                {
+                  offset: "5%",
+                  repeat: "20%",
+                  symbol: L.Symbol.arrowHead({
+                    pixelSize: 10,
+                    polygon: true,
+                    pathOptions: {
+                      color: "#004085",
+                      fillOpacity: 0.8,
+                      weight: 1,
+                    },
+                  }),
+                },
+              ],
+            }).addTo(map);
+            drawn.push(arrowHead);
+          }
+
+          map.fitBounds(poly.getBounds());
+        });
+      });
+
+      // Draw all (main)
+      drawAllBtn.onclick = () => {
+        clearDrawn();
+        let allCoords = [];
+        results.forEach((r) => {
+          if (r.coords && r.coords.length) allCoords.push(...r.coords);
+        });
+
+        const poly = L.polyline(allCoords, {
+          color: "#28a745",
+          weight: 4,
+        }).addTo(map);
+        drawn.push(poly);
+
+        if (L.Symbol?.arrowHead) {
           const arrowHead = L.polylineDecorator(poly, {
             patterns: [
               {
                 offset: "5%",
-                repeat: "20%",
+                repeat: "10%",
                 symbol: L.Symbol.arrowHead({
                   pixelSize: 10,
                   polygon: true,
                   pathOptions: {
-                    color: "#004085",
+                    color: "#155724",
                     fillOpacity: 0.8,
                     weight: 1,
                   },
@@ -531,40 +654,7 @@ analyzeBtn.addEventListener("click", async () => {
             ],
           }).addTo(map);
           drawn.push(arrowHead);
-
-          map.fitBounds(poly.getBounds());
-        });
-      });
-
-      drawAllBtn.onclick = () => {
-        clearDrawn();
-        let allCoords = [];
-        results.forEach((r) => {
-          if (r.coords && r.coords.length) allCoords.push(...r.coords);
-        });
-
-        // Draw the route
-        const poly = L.polyline(allCoords, {
-          color: "#28a745",
-          weight: 4,
-        }).addTo(map);
-        drawn.push(poly);
-
-        // Add directional arrows using PolylineDecorator
-        const arrowHead = L.polylineDecorator(poly, {
-          patterns: [
-            {
-              offset: "5%",
-              repeat: "10%",
-              symbol: L.Symbol.arrowHead({
-                pixelSize: 10,
-                polygon: true,
-                pathOptions: { color: "#155724", fillOpacity: 0.8, weight: 1 },
-              }),
-            },
-          ],
-        }).addTo(map);
-        drawn.push(arrowHead);
+        }
 
         map.fitBounds(poly.getBounds());
       };
