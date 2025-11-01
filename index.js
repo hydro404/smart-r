@@ -15,10 +15,14 @@ app.get('/', (req, res) => {
 });
 
 app.get('/2', (req, res) => {
+  res.render('with-flood');
+});
+
+app.get('/qgis-final', (req, res) => {
   res.render('qgis-final');
 });
 
-app.get('/3', (req, res) => {
+app.get('/qgis-whole', (req, res) => {
   res.render('qgis-whole');
 });
 

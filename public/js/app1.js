@@ -278,7 +278,7 @@ analyzeBtn.addEventListener("click", async () => {
           <option value="main" selected>Main (OSRM)</option>
           <option value="alt" ${
             altTrip ? "" : "disabled"
-          }>Alternative (Hardcoded)</option>
+          }>Alternative (Manually Selected)</option>
         </select>
       </div>
       <button id="drawAllBtn" class="btn btn-primary btn-block w-100 my-3">Draw Pathway</button>
