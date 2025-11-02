@@ -14,6 +14,42 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: "&copy; OSM",
 }).addTo(map);
 
+const homeButton = L.control({ position: "bottomleft" });
+
+homeButton.onAdd = function (map) {
+  const div = L.DomUtil.create(
+    "div",
+    "leaflet-bar leaflet-control leaflet-control-custom"
+  );
+
+  div.innerHTML = `
+    <a href="/" title="Go Home" 
+      style="
+        background:#1b5e20;
+        color:#fff;
+        cursor:pointer;
+        width:100%;
+        height:100%;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        font-size:16px;
+        line-height:1;
+        text-decoration:none;
+        border-radius:4px;
+      " class="p-2 btn btn-primary">
+      Go Home
+    </a>
+  `;
+
+  // Prevent map drag when clicking
+  L.DomEvent.disableClickPropagation(div);
+  return div;
+};
+
+// Add home button to the map
+homeButton.addTo(map);
+
 /* ------------------ Flood Heatmap Layer ------------------ */
 const FLOOD_COORDS = {
   HIGH: [
@@ -75,12 +111,26 @@ floodLegend.onAdd = function (map) {
     "div",
     "info legend bg-white p-2 rounded shadow-sm"
   );
+
   div.innerHTML = `
     <strong>Flood Risk Legend</strong><br>
     <i style="background: blue; width: 18px; height: 18px; display: inline-block; margin-right: 6px;"></i> Low Risk<br>
     <i style="background: yellow; width: 18px; height: 18px; display: inline-block; margin-right: 6px;"></i> Medium Risk<br>
     <i style="background: red; width: 18px; height: 18px; display: inline-block; margin-right: 6px;"></i> High Risk
+    <hr class="my-2">
+    <div style="font-size: 0.9rem;">
+      <strong>Marker Legend</strong><br>
+      <div style="display: flex; align-items: center; margin-bottom: 4px;">
+        <div style="width: 14px; height: 14px; border-radius: 50%; background: #007bff; border: 1px solid #999; margin-right: 6px;"></div>
+        Blue circles — Barangay centroids
+      </div>
+      <div style="display: flex; align-items: center;">
+        <div style="width: 14px; height: 14px; border-radius: 50%; background: #d9534f; border: 1px solid #999; margin-right: 6px;"></div>
+        Red circles — Road network points
+      </div>
+    </div>
   `;
+
   return div;
 };
 

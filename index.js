@@ -9,12 +9,15 @@ const NAME = process.env.NAME || 'TEST';
 // set EJS as view engine
 app.set('view engine', 'ejs');
 
-// Route for home
 app.get('/', (req, res) => {
   res.render('index', { name: NAME });
 });
 
-app.get('/2', (req, res) => {
+app.get('/without-flood', (req, res) => {
+  res.render('without-flood', { name: NAME });
+});
+
+app.get('/with-flood', (req, res) => {
   res.render('with-flood');
 });
 

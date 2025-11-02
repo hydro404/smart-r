@@ -1,136 +1,303 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="utf-8" />
-    <title>SMART-R</title>
-
-    <!-- Bootstrap -->
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
-      rel="stylesheet"
-    />
-
+    <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    <!-- Leaflet -->
+    <title>SMART-R | Spatial Modeling and Analysis for Risk-based Transport Routing</title>
     <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
       rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     />
-    <link rel="stylesheet" href="css/style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/svg+xml" href="./route-solid-full.svg">
 
-    <!-- <script>
-      async function hashPassword(password) {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(password);
-        const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    <style>
+      :root {
+        --primary: #1b5e20;
+        --primary-light: #2e7d32;
+        --primary-lighter: #4caf50;
+        --accent: #81c784;
+        --text-dark: #1b5e20;
+        --text-light: #388e3c;
+        --background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+        --card-bg: #ffffff;
+        --shadow: rgba(46, 125, 50, 0.2);
       }
 
-      const correctHash = '936a185caaa266bb9cbe981e9e05cb78cd732b0b3280eb944412bb6f8f8f07af'; // hash of your password
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-      (async () => {
-        let authenticated = false;
-        while (!authenticated) {
-          const password = prompt("Enter password:");
-          if (password === null) continue; // prompt again if user presses cancel
-          const hashed = await hashPassword(password);
-          if (hashed === correctHash) {
-            alert("Access granted");
-            authenticated = true;
-          } else {
-            alert("Incorrect password. Try again.");
-          }
+      body {
+        font-family: "Poppins", sans-serif;
+        background: var(--background);
+        color: var(--text-dark);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+
+      .main-card {
+        background: var(--card-bg);
+        border-radius: 24px;
+        box-shadow: 0 15px 35px var(--shadow);
+        padding: 60px 50px;
+        max-width: 800px;
+        width: 100%;
+        text-align: center;
+        transition: all 0.4s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .main-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 6px;
+        background: linear-gradient(90deg, var(--primary), var(--accent));
+      }
+
+      .main-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px rgba(46, 125, 50, 0.3);
+      }
+
+      .logo-container {
+        margin-bottom: 25px;
+      }
+
+      .logo-icon {
+        font-size: 3rem;
+        color: var(--primary);
+        margin-bottom: 15px;
+      }
+
+      h1 {
+        font-size: 2.8rem;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 10px;
+        letter-spacing: -0.5px;
+      }
+
+      .accent-text {
+        color: var(--primary-lighter);
+      }
+
+      p.subtitle {
+        color: var(--text-light);
+        font-size: 1.1rem;
+        margin-bottom: 40px;
+        line-height: 1.6;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .btn {
+        border-radius: 12px;
+        font-weight: 600;
+        padding: 16px 24px;
+        font-size: 1.1rem;
+        transition: all 0.3s ease;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .btn::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 5px;
+        height: 5px;
+        background: rgba(255, 255, 255, 0.5);
+        opacity: 0;
+        border-radius: 100%;
+        transform: scale(1, 1) translate(-50%);
+        transform-origin: 50% 50%;
+      }
+
+      .btn:focus:not(:active)::after {
+        animation: ripple 1s ease-out;
+      }
+
+      @keyframes ripple {
+        0% {
+          transform: scale(0, 0);
+          opacity: 0.5;
         }
-      })();
-    </script> -->
+        20% {
+          transform: scale(25, 25);
+          opacity: 0.3;
+        }
+        100% {
+          opacity: 0;
+          transform: scale(40, 40);
+        }
+      }
+
+      .btn-green {
+        background-color: var(--primary-light);
+        color: #fff;
+      }
+      .btn-green:hover {
+        background-color: var(--primary);
+        transform: translateY(-3px);
+        box-shadow: 0 7px 15px rgba(27, 94, 32, 0.4);
+        color: #fff;
+      }
+
+      .btn-light-green {
+        background-color: var(--accent);
+        color: var(--text-dark);
+      }
+      .btn-light-green:hover {
+        background-color: var(--primary-lighter);
+        color: #fff;
+        transform: translateY(-3px);
+        box-shadow: 0 7px 15px rgba(76, 175, 80, 0.4);
+      }
+
+      .btn-outline-green {
+        background-color: transparent;
+        border: 2px solid var(--primary-light);
+        color: var(--primary-light);
+      }
+      .btn-outline-green:hover {
+        background-color: var(--primary-light);
+        color: #fff;
+        transform: translateY(-3px);
+        box-shadow: 0 7px 15px rgba(46, 125, 50, 0.3);
+      }
+
+      .btn-group {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        margin-bottom: 30px;
+      }
+
+      .btn-group-header {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 15px;
+      }
+
+      .btn-group-title {
+        font-weight: 600;
+        color: var(--primary);
+        font-size: 1.2rem;
+      }
+
+      .divider {
+        height: 1px;
+        background: linear-gradient(90deg, transparent, var(--accent), transparent);
+        margin: 25px 0;
+      }
+
+      footer {
+        text-align: center;
+        margin-top: 40px;
+        font-size: 0.9rem;
+        color: var(--text-light);
+        opacity: 0.8;
+      }
+
+      @media (max-width: 768px) {
+        h1 {
+          font-size: 2.2rem;
+        }
+        .main-card {
+          padding: 40px 30px;
+        }
+        .btn {
+          font-size: 1rem;
+          padding: 14px 20px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        h1 {
+          font-size: 1.9rem;
+        }
+        .main-card {
+          padding: 30px 20px;
+        }
+        p.subtitle {
+          font-size: 1rem;
+        }
+      }
+    </style>
   </head>
+
   <body>
-    <!-- Spinner (hidden by default) -->
-    <div id="analyzeSpinner" class="spinner-overlay d-none">
-      <div class="spinner-border text-primary" role="status"></div>
-      <span class="ms-2 text-white fw-bold">Analyzing routes...</span>
+    <div class="main-card">
+      <div class="logo-container">
+        <div class="logo-icon">
+          <i class="fas fa-route"></i>
+        </div>
+        <h1>SMART<span class="accent-text">-R</span></h1>
+      </div>
+      
+      <p class="subtitle">
+        Spatial Modeling and Analysis for Risk-based Transport Routing
+      </p>
+
+      <div class="btn-group">
+        <div class="btn-group-header">
+          <i class="fas fa-route"></i>
+          <span class="btn-group-title">Route Analysis</span>
+        </div>
+        <a href="/without-flood" class="btn btn-green rounded-3">
+          <i class="fas fa-road"></i>
+          Without Flood
+        </a>
+        <a href="/with-flood" class="btn btn-green rounded-3">
+          <i class="fas fa-water"></i>
+          With Flood
+        </a>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="btn-group">
+        <div class="btn-group-header">
+          <i class="fas fa-map-marked-alt"></i>
+          <span class="btn-group-title">QGIS Projects</span>
+        </div>
+        <a href="/qgis-final" class="btn btn-light-green rounded-3">
+          <i class="fas fa-map"></i>
+          Project Noah (Camalig Boundary)
+        </a>
+        <a href="/qgis-whole" class="btn btn-outline-green rounded-3">
+          <i class="fas fa-globe-asia"></i>
+          Project Noah (Albay)
+        </a>
+      </div>
+
+      <footer>
+        <i class="far fa-copyright"></i> 2025 SMART-R Project | All Rights Reserved
+      </footer>
     </div>
 
-    <div id="map"></div>
-
-    <div id="side">
-
-      <div class="panel-header text-center">
-        <h1 class="fw-bold">SMART-R</h1>
-        <p style="color: #1b5e20">
-          Spatial Modeling and Analysis for Risk-based Transport Routing
-        </p>
-      </div>
-
-      
-      <div class="mb-2">
-        <input class="form-check-input" type="checkbox" id="toggleLegend" checked>
-        <label class="form-check-label" for="toggleLegend">Show Barangay Legend</label>
-      </div>
-
-      <div class="mb-2 border-top pt-2">
-        <strong class="d-block mb-1">Marker Visibility</strong>
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="toggleBarangayPoints" checked>
-          <label class="form-check-label" for="toggleBarangayPoints">Show Barangay Points (0–50)</label>
-        </div>
-        <div class="form-check mt-1">
-          <input class="form-check-input" type="checkbox" id="toggleRoadNetwork" checked>
-          <label class="form-check-label" for="toggleRoadNetwork">Show Road Network Points (51+)</label>
-        </div>
-      </div>
-      
-      <div class="mb-2">
-        <label class="form-label small mb-1">Zone</label>
-        <select id="zoneSelect" class="form-select"></select>
-      </div>
-      
-
-      <div class="mb-2">
-        <label class="form-label small mb-1">Trip</label>
-        <select id="tripSelect" class="form-select"></select>
-      </div>
-
-      <div class="d-grid gap-2">
-        <button id="analyzeBtn" class="btn btn-primary" disabled>
-          Analyze Routes
-        </button>
-      </div>
-      <!-- <div class="d-grid gap-2 mt-2">
-        <button id="drawSelectedBtn" class="btn btn-success" disabled>
-          Draw Selected Trip
-        </button>
-      </div> -->
-
-      <hr />
-
-      <div id="segmentsContainer">
-        <p class="small-muted">
-          After analyzing, segments and route alternatives will appear here.
-          Click a route to draw it on the map.
-        </p>
-      </div>
-    </div>
-
-    <!-- Libraries -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-    <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
-    <!-- PolylineDecorator plugin -->
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-polylinedecorator/1.1.0/leaflet.polylineDecorator.min.js"
-      integrity="sha512-2oK40N5b+8g4Fhp1rfdtmNaroXsh7tFN4OY6++9lB/Hb+uLQWmn0SSAXvnQfbn8BP8qtpri2YQLaFGpyzKUHow=="
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    ></script>
-    <script src="js/app1.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   </body>
 </html>
