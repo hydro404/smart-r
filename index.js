@@ -21,11 +21,11 @@ app.get('/with-flood', (req, res) => {
   res.render('with-flood');
 });
 
-app.get('/qgis-final', (req, res) => {
+app.get('/qgis-camalig', (req, res) => {
   res.render('qgis-final');
 });
 
-app.get('/qgis-whole', (req, res) => {
+app.get('/qgis-albay', (req, res) => {
   res.render('qgis-whole');
 });
 
