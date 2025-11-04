@@ -476,13 +476,12 @@ analyzeBtn.addEventListener("click", async () => {
           })
           .join("")}
         <hr class="my-2">
-        <div><strong>Total Distance:</strong> ${(totalDistance / 1000).toFixed(
-          2
-        )} km</div>
-        <div><strong>Total Duration:</strong> ${(totalDuration / 60).toFixed(
-          1
-        )} min</div>
-      </div>`;
+        <div><strong>Total Distance:</strong> ${(totalDistance / 1000).toFixed(2)} km</div>
+        <div><strong>Total Duration:</strong> ${(totalDuration / 60).toFixed(1)} min</div>
+        <hr class="my-2">
+        <div><strong>Fuel Consumption:</strong> ${tripData["Fuel Consumption"] ?? "N/A"} L</div>
+        <div><strong>CO₂ Emission:</strong> ${tripData["CO2 Emission"] ?? "N/A"} kg</div>
+        </div>`;
 
       document.querySelectorAll(".segment-item").forEach((el, i) => {
         el.addEventListener("click", () => {
