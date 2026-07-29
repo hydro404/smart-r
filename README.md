@@ -36,4 +36,4 @@ npm run build
 
 SMART-R is an academic planning tool, not certified navigation. Project NOAH polygons represent flood susceptibility rather than confirmed live inundation. Open-Meteo rainfall is context only. The exported road network lacks complete one-way and turn-restriction attributes, so roads are modeled as bidirectional. Field verification by the LGU, MDRRMO, and responders remains necessary.
 
-The original Express/EJS prototype and unused QGIS web export were removed from the production tree after validation. They remain recoverable from repository history.
+The original Express/EJS prototype and unused QGIS web export are retained under `research-data/legacy-prototype/` and are not shipped with the production app.
